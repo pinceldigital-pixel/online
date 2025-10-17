@@ -29,8 +29,8 @@
     .nowTrack{ font-style:italic; color:#c9c9c9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100% }
     .eq{ display:flex; align-items:flex-end; gap:3px; height:22px }
     .bar{ width:3px; background:var(--accent); height:4px; border-radius:2px }
-    .stations{ display:grid; gap:14px; padding:8px 16px 16px; grid-template-columns:repeat(2,1fr) }
-    .btn{ background:var(--card); border:none; color:var(--text); border-radius:22px; height:118px; padding:0 18px; display:flex; align-items:center; justify-content:center; box-shadow: 0 1px 0 #1c1d20 inset, 0 10px 24px rgba(0,0,0,.4); }
+    .stations{ display:grid; gap:16px; padding:4px 16px 24px; margin-top:6px; grid-template-columns:repeat(2,1fr) }
+    .btn{ background:var(--card); border:none; color:var(--text); border-radius:22px; height:136px; padding:0 18px; display:flex; align-items:center; justify-content:center; box-shadow: 0 1px 0 #1c1d20 inset, 0 10px 24px rgba(0,0,0,.4); }
     .cardText{ display:flex; flex-direction:column; align-items:center; gap:6px }
     .cardText .freq{ font-size:28px; font-weight:800; letter-spacing:.02em }
     .cardText .label{ font-size:14px; color:var(--muted); font-weight:700; letter-spacing:.08em; text-transform:uppercase }
@@ -226,6 +226,7 @@
 
   // Build UI
   buildStations();
+  document.addEventListener('DOMContentLoaded', buildStations);
   </script>
 </body>
 </html>
