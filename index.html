@@ -30,7 +30,8 @@
     .eq{ display:flex; align-items:flex-end; gap:3px; height:22px }
     .bar{ width:3px; background:var(--accent); height:4px; border-radius:2px }
     .stations{ display:grid; gap:16px; padding:4px 16px 24px; margin-top:6px; grid-template-columns:repeat(2,1fr) }
-    .btn{ background:var(--card); border:none; color:var(--text); border-radius:22px; height:136px; padding:0 18px; display:flex; align-items:center; justify-content:center; box-shadow: 0 1px 0 #1c1d20 inset, 0 10px 24px rgba(0,0,0,.4); }
+    .btn{ background:var(--card); border:none; color:var(--text); border-radius:22px; height:136px; padding:0 18px; display:flex; align-items:center; justify-content:center; box-shadow: 0 1px 0 #1c1d20 inset, 0 10px 24px rgba(0,0,0,.4); cursor:pointer; transition:transform .15s ease; }
+    .btn:active{ transform:scale(.96) }
     .cardText{ display:flex; flex-direction:column; align-items:center; gap:6px }
     .cardText .freq{ font-size:28px; font-weight:800; letter-spacing:.02em }
     .cardText .label{ font-size:14px; color:var(--muted); font-weight:700; letter-spacing:.08em; text-transform:uppercase }
@@ -86,10 +87,10 @@
 
   <script>
   const STATIONS = [
-    { id:'now',   label:'Now',  freq:'97.9',  name:'Now 97.9',  url:'https://ipanel.instream.audio:7002/stream', meta:{} },
-    { id:'blue',  label:'Blue', freq:'100.7', name:'Blue 100.7',url:'https://27693.live.streamtheworld.com/BLUE_FM_100_7AAC.aac', meta:{ tmwId:'BLUE_FM_100_7' } },
-    { id:'aspen', label:'Aspen',freq:'102.3', name:'Aspen 102.3',url:'https://playerservices.streamtheworld.com/api/livestream-redirect/ASPEN.mp3', meta:{ tmwId:'ASPEN' } },
-    { id:'lnp',   label:'LN+',  freq:'104.9', name:'LN+ 104.9', url:'https://stream.radio.co/s2ed3bec0a/listen', meta:{} },
+    { id:'now',   label:'Now',  freq:'97.9',  name:'Now 97.9',  url:'https://ipanel.instream.audio:7002/stream' },
+    { id:'blue',  label:'Blue', freq:'100.7', name:'Blue 100.7',url:'https://27693.live.streamtheworld.com/BLUE_FM_100_7AAC.aac' },
+    { id:'aspen', label:'Aspen',freq:'102.3', name:'Aspen 102.3',url:'https://playerservices.streamtheworld.com/api/livestream-redirect/ASPEN.mp3' },
+    { id:'lnp',   label:'LN+',  freq:'104.9', name:'LN+ 104.9', url:'https://stream.radio.co/s2ed3bec0a/listen' },
   ];
 
   const stationsEl = document.getElementById('stations');
@@ -106,127 +107,64 @@
   const onAirChip = document.getElementById('onAirChip');
   const onAirText = document.getElementById('onAirText');
 
-  let current = null, index = 0;
-  let context, analyser, dataArray, rafId;
-  let sleepTimer=null, sleepRemaining=0; const SLEEP_TOTAL=30*60;
+  let current=null;
 
   function showToast(msg){ toast.textContent = msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), 2200); }
-  function setAirState(isOn){
-    if(isOn){ onAirChip.classList.remove('off'); onAirText.textContent='ON AIR'; }
-    else { onAirChip.classList.add('off'); onAirText.textContent='OFF AIR'; }
-  }
+  function setAirState(isOn){ if(isOn){ onAirChip.classList.remove('off'); onAirText.textContent='ON AIR'; } else { onAirChip.classList.add('off'); onAirText.textContent='OFF AIR'; } }
 
   function buildStations(){
     stationsEl.innerHTML='';
     STATIONS.forEach(s=>{
-      const btn = document.createElement('button');
+      const btn=document.createElement('button');
       btn.className='btn';
-      btn.dataset.id = s.id;
-      btn.innerHTML = `<div class="cardText"><div class="freq">${s.freq}</div><div class="label">${s.label}</div></div>`;
+      btn.dataset.id=s.id;
+      btn.innerHTML=`<div class="cardText"><div class="freq">${s.freq}</div><div class="label">${s.label}</div></div>`;
       btn.addEventListener('click', ()=> playStation(s));
       stationsEl.appendChild(btn);
     });
   }
 
-  async function fetchStreamTheWorldNowPlaying(id){
-    const endpoints=[
-      `https://np.tritondigital.com/public/nowplaying?mountName=${encodeURIComponent(id)}&numberOfTracks=1&eventType=track`,
-      `https://playerservices.streamtheworld.com/api/livestream-redirect/${encodeURIComponent(id)}_SC`
-    ];
-    for (const url of endpoints){
-      try{
-        const res = await fetch(url, {cache:'no-store'});
-        if (!res.ok) continue;
-        const ct = res.headers.get('content-type')||'';
-        if (ct.includes('application/json')){
-          const j = await res.json();
-          const t = j?.nowplaying?.track?.song || j?.song || j?.title;
-          if (t) return t;
-        } else {
-          const txt = await res.text();
-          const m = txt.match(/StreamTitle='([^']+)'/);
-          if (m) return m[1];
-        }
-      }catch(e){}
-    }
-    return null;
+  function updateMetadata(){
+    if (player.paused || !player.src){ trackEl.textContent='—'; setAirState(false); }
+    else { trackEl.textContent='Reproduciendo…'; setAirState(true); }
   }
 
-  async function updateMetadata(){
-    let title=null;
-    if (current?.meta?.tmwId){ title = await fetchStreamTheWorldNowPlaying(current.meta.tmwId); }
-    if (!title && 'mediaSession' in navigator){
-      const md = navigator.mediaSession.metadata;
-      if (md && (md.title || md.artist)){ title = [md.title, md.artist].filter(Boolean).join(' — '); }
-    }
-    if (player.paused || !player.src){ trackEl.textContent='—'; trackEl.style.opacity=.8; setAirState(false); }
-    else { trackEl.textContent = title || 'Reproduciendo…'; trackEl.style.opacity = title ? 1 : .8; setAirState(true); }
-  }
-
-  async function playStation(s){
-    current = s; index = STATIONS.findIndex(x=>x.id===s.id);
-    player.src = s.url + (s.url.includes('?')?'&':'?') + 't=' + Date.now();
+  function playStation(s){
+    current=s;
+    player.src=s.url+(s.url.includes('?')?'&':'?')+'t='+Date.now();
     player.play().catch(()=>{});
     ppPlay.classList.add('hidden'); ppPause.classList.remove('hidden');
-    stationLabel.textContent = s.label; nowFreq.textContent = s.freq;
-    trackEl.textContent = 'Cargando…';
-    showToast('Reproduciendo ' + s.name);
-    updateMetadata();
-    if (!context) initAnalyser();
+    stationLabel.textContent=s.label; nowFreq.textContent=s.freq;
+    trackEl.textContent='Cargando…'; setAirState(true);
+    showToast('Reproduciendo '+s.name);
   }
 
-  function initAnalyser(){
-    try{
-      context = new (window.AudioContext||window.webkitAudioContext)();
-      const source = context.createMediaElementSource(player);
-      analyser = context.createAnalyser(); analyser.fftSize = 256;
-      source.connect(analyser); analyser.connect(context.destination);
-      dataArray = new Uint8Array(analyser.frequencyBinCount);
-      animateEq();
-    }catch(e){}
-  }
-
-  function animateEq(){
-    const bars = document.querySelectorAll('.bar'); const len = bars.length;
-    const step = ()=>{
-      if (analyser){ analyser.getByteFrequencyData(dataArray);
-        for(let i=0;i<len;i++){ const idx=(i*2+5)|0; const v=dataArray[idx]||0; const h=4+(v/255)*18; bars[i].style.height=h+'px'; }
-      } else { const t=Date.now()/200; for(let i=0;i<len;i++){ const h=4+(Math.sin(t+i)*.5+.5)*18; bars[i].style.height=h+'px'; } }
-      rafId = requestAnimationFrame(step);
-    }; step();
-  }
-
-  // Controls
   playPause.addEventListener('click', ()=>{
     if (player.paused){ player.play(); ppPlay.classList.add('hidden'); ppPause.classList.remove('hidden'); setAirState(true); }
     else { player.pause(); ppPause.classList.add('hidden'); ppPlay.classList.remove('hidden'); setAirState(false); trackEl.textContent='—'; }
   });
-  vol.addEventListener('input', ()=>{ player.volume = parseFloat(vol.value||'1'); });
+  vol.addEventListener('input', ()=>{ player.volume=parseFloat(vol.value||'1'); });
 
-  // Update metadata based on player events
   player.addEventListener('playing', updateMetadata);
   player.addEventListener('pause', updateMetadata);
   player.addEventListener('ended', updateMetadata);
   player.addEventListener('emptied', updateMetadata);
-  setInterval(()=>{ if(!player.paused) updateMetadata(); }, 15000);
 
-  // Sleep timer (moon): toggles orange fill when active
-  let SLEEP_TOTAL=30*60, sleepTimer=null, sleepRemaining=0;
+  // Temporizador luna
+  let sleepTimer=null; const SLEEP_TOTAL=30*60; let remaining=0;
   function startSleep(){
-    sleepRemaining = SLEEP_TOTAL; sleepBtn.classList.add('active');
-    if (sleepTimer) clearInterval(sleepTimer);
-    sleepTimer = setInterval(()=>{
-      sleepRemaining -= 1;
-      if (sleepRemaining<=0){ clearInterval(sleepTimer); sleepTimer=null; player.pause(); ppPause.classList.add('hidden'); ppPlay.classList.remove('hidden'); sleepBtn.classList.remove('active'); showToast('Temporizador: fin'); }
-    }, 1000);
+    remaining=SLEEP_TOTAL; sleepBtn.classList.add('active');
+    if(sleepTimer) clearInterval(sleepTimer);
+    sleepTimer=setInterval(()=>{
+      remaining--;
+      if(remaining<=0){ clearInterval(sleepTimer); sleepTimer=null; player.pause(); ppPause.classList.add('hidden'); ppPlay.classList.remove('hidden'); sleepBtn.classList.remove('active'); showToast('Temporizador: fin'); }
+    },1000);
     showToast('Temporizador: 30 min');
   }
-  function stopSleep(){ if(sleepTimer){ clearInterval(sleepTimer); sleepTimer=null; } sleepBtn.classList.remove('active'); showToast('Temporizador cancelado'); }
+  function stopSleep(){ if(sleepTimer){ clearInterval(sleepTimer); sleepTimer=null;} sleepBtn.classList.remove('active'); showToast('Temporizador cancelado'); }
   sleepBtn.addEventListener('click', ()=>{ if(sleepTimer) stopSleep(); else startSleep(); });
 
-  // Build UI
   buildStations();
-  document.addEventListener('DOMContentLoaded', buildStations);
   </script>
 </body>
 </html>
