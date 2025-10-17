@@ -17,7 +17,7 @@
     .moon svg{display:block}
     .moon.active svg path{stroke:var(--accent)!important; fill:var(--accent)!important; opacity:1!important;}
     main{ display:flex; flex-direction:column; gap:10px }
-    .now{ margin:10px 16px 8px; background:var(--glass); border-radius:22px; padding:26px; display:flex; align-items:center; justify-content:center; gap:16px; box-shadow: 0 1px 0 #1c1d20 inset, 0 10px 24px rgba(0,0,0,.3); min-height:180px; }
+    .now{ margin:10px 16px 8px; background:var(--glass); border-radius:22px; padding:26px; display:flex; align-items:center; justify-content:center; gap:16px; box-shadow: 0 1px 0 #1c1d20 inset, 0 10px 24px rgba(0,0,0,.3); min-height:200px; }
     .nowContent{ display:flex; flex-direction:column; gap:8px; min-width:0; align-items:center; text-align:center }
     .nowFreq{ font-size:34px; font-weight:800; letter-spacing:.02em }
     .nowLabel{ font-size:16px; color:var(--muted); font-weight:700; letter-spacing:.08em; text-transform:uppercase }
@@ -29,6 +29,15 @@
     .nowTrack{ font-style:italic; color:#c9c9c9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100% }
     .eq{ display:flex; align-items:flex-end; gap:3px; height:22px }
     .bar{ width:3px; background:var(--accent); height:4px; border-radius:2px }
+    .dial{position:relative; width:100%; max-width:320px; height:28px; margin:2px 0 2px}
+    .dial-line{position:absolute; left:0; right:0; top:50%; height:2px; background:#2a2b2f; transform:translateY(-50%); border-radius:2px;}
+    .dial-ticks{position:absolute; left:0; right:0; top:50%; transform:translateY(-50%); height:100%; pointer-events:none}
+    .dial-ticks::before{content:''; position:absolute; left:0; right:0; top:0; height:100%; background:
+      linear-gradient(to right, transparent 0%, transparent 2%, #3a3b3f 2%, #3a3b3f 2.6%, transparent 2.6%) repeat-x;
+      background-size:10% 100%; opacity:.9}
+    .needle{position:absolute; top:2px; width:2px; height:24px; background:var(--accent); border-radius:2px; box-shadow:0 0 8px rgba(255,122,0,.25)}
+    .needle.playing{animation:wiggle 1.6s ease-in-out infinite}
+    @keyframes wiggle{0%{transform:translateX(-1px)}50%{transform:translateX(1px)}100%{transform:translateX(-1px)}}
     .stations{ display:grid; gap:16px; padding:4px 16px 24px; margin-top:6px; grid-template-columns:repeat(2,1fr) }
     .btn{ background:var(--card); border:none; color:var(--text); border-radius:22px; height:136px; padding:0 18px; display:flex; align-items:center; justify-content:center; box-shadow: 0 1px 0 #1c1d20 inset, 0 10px 24px rgba(0,0,0,.4); cursor:pointer; transition:transform .15s ease; }
     .btn:active{ transform:scale(.96) }
@@ -38,7 +47,7 @@
     .mini{ position:fixed; left:12px; right:12px; bottom:12px; background:var(--card); border-radius:16px; padding:12px 14px; box-shadow: 0 10px 30px rgba(0,0,0,.45); }
     .controls{ display:flex; align-items:center; gap:12px; justify-content:center; flex-wrap:nowrap }
     .icon-btn{ width:40px; height:40px; border-radius:12px; display:grid; place-items:center; background:#1b1c1f; border:none; color:#fff; cursor:pointer }
-    input[type=range]{ -webkit-appearance:none; width:180px; height:4px; background:#2a2b2f; border-radius:4px; outline:none }
+    input[type=range]{ -webkit-appearance:none; width:160px; height:4px; background:#2a2b2f; border-radius:4px; outline:none }
     input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:#ffffff; border:2px solid #1b1c1f }
     input[type=range]::-moz-range-thumb{ width:16px; height:16px; border-radius:50%; background:#ffffff; border:2px solid #1b1c1f }
     .toast{ position:fixed; right:14px; bottom:80px; background:#16171a; color:#fff; padding:10px 12px; border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,.4); opacity:0; transform:translateY(10px); transition: all .25s ease; pointer-events:none; border:1px solid #22242a; }
@@ -62,6 +71,7 @@
         <div id="nowFreq" class="nowFreq">—</div>
         <div id="stationLabel" class="nowLabel">Elegí una estación</div>
         <div id="onAirChip" class="onair-chip off"><span class="dot"></span><span id="onAirText">OFF AIR</span></div>
+        <div class="dial"><div class="dial-line"></div><div class="dial-ticks"></div><div id="needle" class="needle"></div></div>
         <div id="track" class="nowTrack">—</div>
       </div>
       <div class="eq" aria-hidden="true">
@@ -74,16 +84,22 @@
 
   <div class="mini">
     <div class="controls">
+      <button id="prevBtn" class="icon-btn" aria-label="Anterior">
+        <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#ffffff" d="M6 6h2v12H6zm3 6l9 6V6z"/></svg>
+      </button>
       <button id="playPause" class="icon-btn" aria-label="Play/Pause">
         <svg id="ppPlay" class="ppicon" width="22" height="22" viewBox="0 0 24 24"><path fill="#ffffff" d="M8 5v14l11-7z"/></svg>
         <svg id="ppPause" class="ppicon hidden" width="22" height="22" viewBox="0 0 24 24"><path fill="#ffffff" d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>
+      </button>
+      <button id="nextBtn" class="icon-btn" aria-label="Siguiente">
+        <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#ffffff" d="M18 6h-2v12h2zm-3 0L6 12l9 6V6z"/></svg>
       </button>
       <input id="vol" type="range" min="0" max="1" step="0.01" value="1">
     </div>
   </div>
 
   <div id="toast" class="toast"></div>
-  <audio id="player" crossorigin="anonymous" crossorigin="anonymous"></audio>
+  <audio id="player" crossorigin="anonymous"></audio>
 
   <script>
   const STATIONS = [
@@ -98,6 +114,8 @@
   const playPause = document.getElementById('playPause');
   const ppPlay = document.getElementById('ppPlay');
   const ppPause = document.getElementById('ppPause');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
   const vol = document.getElementById('vol');
   const trackEl = document.getElementById('track');
   const stationLabel = document.getElementById('stationLabel');
@@ -106,11 +124,24 @@
   const sleepBtn = document.getElementById('sleepBtn');
   const onAirChip = document.getElementById('onAirChip');
   const onAirText = document.getElementById('onAirText');
+  const needle = document.getElementById('needle');
 
-  let current=null; let context=null, analyser=null, dataArray=null, rafId=null;
+  let current=null, index=0;
+  let context=null, analyser=null, dataArray=null, rafId=null;
 
   function showToast(msg){ toast.textContent = msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), 2200); }
-  function setAirState(isOn){ if(isOn){ onAirChip.classList.remove('off'); onAirText.textContent='ON AIR'; } else { onAirChip.classList.add('off'); onAirText.textContent='OFF AIR'; } }
+  function setAirState(isOn){ if(isOn){ onAirChip.classList.remove('off'); onAirText.textContent='ON AIR'; needle.classList.add('playing'); } else { onAirChip.classList.add('off'); onAirText.textContent='OFF AIR'; needle.classList.remove('playing'); } }
+
+  // Dial mapping
+  const FREQ_MIN = 97.0, FREQ_MAX = 105.0;
+  function updateNeedle(freq){
+    const dial = document.querySelector('.dial');
+    if(!dial || !needle) return;
+    const w = dial.clientWidth;
+    const pct = Math.max(0, Math.min(1, (parseFloat(freq) - FREQ_MIN) / (FREQ_MAX - FREQ_MIN)));
+    const x = Math.round(pct * w);
+    needle.style.left = (x - 1) + 'px';
+  }
 
   function buildStations(){
     stationsEl.innerHTML='';
@@ -136,10 +167,10 @@
       analyser.connect(context.destination);
       dataArray = new Uint8Array(analyser.frequencyBinCount);
     }catch(e){
-      // Si falla (CORS o política), anulamos analyser para usar fallback
-      analyser = null;
+      analyser = null; // fallback
     }
   }
+
   function animateEq(){
     const bars = document.querySelectorAll('.bar');
     const len = bars.length;
@@ -153,10 +184,7 @@
             const h = 4 + (v/255)*18;
             bars[i].style.height = h + 'px';
           }
-        }catch(e){
-          // Si algo peta, caemos al fallback
-          analyser = null;
-        }
+        }catch(e){ analyser = null; }
       }
       if (!analyser){
         const t = Date.now()/210;
@@ -170,33 +198,38 @@
     cancelAnimationFrame(rafId || 0);
     rafId = requestAnimationFrame(step);
   }
+
   function updateMetadata(){
     if (player.paused || !player.src){ trackEl.textContent='—'; setAirState(false); }
     else { trackEl.textContent='Reproduciendo…'; setAirState(true); }
   }
 
   function playStation(s){
-    current=s;
+    current=s; index = STATIONS.findIndex(x=>x.id===s.id);
     player.src=s.url+(s.url.includes('?')?'&':'?')+'t='+Date.now();
     player.play().catch(()=>{});
     ppPlay.classList.add('hidden'); ppPause.classList.remove('hidden');
     stationLabel.textContent=s.label; nowFreq.textContent=s.freq;
-    trackEl.textContent='Cargando…'; setAirState(true);
+    updateNeedle(s.freq); setAirState(true);
+    trackEl.textContent='Cargando…';
     showToast('Reproduciendo '+s.name);
+    initAnalyser(); animateEq();
   }
 
   playPause.addEventListener('click', ()=>{
-    if (player.paused){ player.play(); try{initAnalyser();}catch(e){} animateEq(); ppPlay.classList.add('hidden'); ppPause.classList.remove('hidden'); setAirState(true); }
+    if (player.paused){ player.play(); ppPlay.classList.add('hidden'); ppPause.classList.remove('hidden'); setAirState(true); initAnalyser(); animateEq(); }
     else { player.pause(); ppPause.classList.add('hidden'); ppPlay.classList.remove('hidden'); setAirState(false); trackEl.textContent='—'; }
   });
+  prevBtn.addEventListener('click', ()=>{ index=(index-1+STATIONS.length)%STATIONS.length; playStation(STATIONS[index]); });
+  nextBtn.addEventListener('click', ()=>{ index=(index+1)%STATIONS.length; playStation(STATIONS[index]); });
   vol.addEventListener('input', ()=>{ player.volume=parseFloat(vol.value||'1'); });
 
-  player.addEventListener('playing', ()=>{ try{initAnalyser();}catch(e){} animateEq(); updateMetadata(); });
+  player.addEventListener('playing', updateMetadata);
   player.addEventListener('pause', updateMetadata);
   player.addEventListener('ended', updateMetadata);
   player.addEventListener('emptied', updateMetadata);
 
-  // Temporizador luna
+  // Sleep timer
   let sleepTimer=null; const SLEEP_TOTAL=30*60; let remaining=0;
   function startSleep(){
     remaining=SLEEP_TOTAL; sleepBtn.classList.add('active');
