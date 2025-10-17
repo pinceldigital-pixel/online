@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Radio FM PWA</title>
+    
+    <!-- Meta tags for PWA -->
+    <meta name="theme-color" content="#1a1a1a"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Radio FM">
+    <meta name="application-name" content="Radio FM">
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://placehold.co/192x192/f97316/white?text=FM">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom Font and Styles -->
+    <style>
+        @font-face {
+            font-family: 'Song';
+            src: url('Song.otf') format('opentype');
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .font-song {
+            font-family: 'Song', sans-serif;
+        }
+
+        /* ON AIR indicator pulse animation */
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 0 5px 2px rgba(255, 0, 0, 0.7);
+            }
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 0 15px 5px rgba(255, 0, 0, 0.7);
+            }
+        }
+
+        .on-air .status-indicator {
+            animation: pulse 1.5s infinite;
+        }
+        
+        /* Dial Glass Effect */
+        .dial-glass::before {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 5%;
+            width: 90%;
+            height: 50%;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0) 100%);
+            border-radius: 6px;
+            z-index: 2;
+        }
+
+        /* Dial Inner Light Effect */
+        .dial-light {
+            position: absolute;
+            inset: 0;
+            border-radius: 0.5rem; /* Corresponds to rounded-lg */
+            transition: box-shadow 0.5s ease-in-out;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body class="bg-zinc-900 text-white flex flex-col items-center justify-around h-screen p-4 overflow-hidden">
+
+    <!-- Header: ON AIR Status -->
+    <div id="status-container" class="off-air flex items-center gap-2 mb-4">
+        <div class="status-indicator w-3 h-3 rounded-full bg-gray-500 transition-all duration-300"></div>
+        <span id="status-text" class="font-semibold text-gray-400 tracking-widest text-sm">OFF AIR</span>
+    </div>
+
+    <!-- Dial Section -->
+    <div class="w-full max-w-lg mx-auto px-4 py-6 mb-4">
+        <div class="relative h-16 bg-zinc-800 rounded-lg border-t-2 border-b-2 border-zinc-900/50 shadow-inner overflow-hidden p-2 dial-glass">
+            <!-- Inner light effect -->
+            <div id="dial-light" class="absolute inset-0 opacity-50"></div>
+            
+            <!-- Dial background with ticks -->
+            <div class="absolute inset-0 bg-repeat-x" style="background-image: linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to right, currentColor 1px, transparent 1px); background-size: 10% 100%, 2% 100%; background-position: -1px 100%, -1px 100%; color: rgba(161, 161, 170, 0.4); bottom: 1.5rem; top: 1.5rem;"></div>
+
+            <!-- Dial Numbers -->
+            <div class="relative w-full h-full flex items-center justify-between text-zinc-300 font-bold text-sm px-2 select-none z-10">
+                <span>88</span>
+                <span>92</span>
+                <span>96</span>
+                <span>100</span>
+                <span>104</span>
+                <span>108</span>
+            </div>
+
+            <!-- Needle -->
+            <div id="dial-needle" class="absolute top-2 bottom-2 w-1 rounded z-20" style="left: 10%; transition: left 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55), background-color 0.5s ease-in-out, box-shadow 0.5s ease-in-out;">
+                <!-- Needle highlight -->
+                <div class="absolute top-0 left-0 w-full h-full bg-white/20"></div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Radio Info Display -->
+    <div class="text-center mb-6">
+        <p id="dial-number" class="font-song text-7xl font-bold text-zinc-200 transition-opacity duration-300">97.9</p>
+        <p id="radio-name" class="text-xl font-semibold tracking-wide transition-all duration-500">Now</p>
+    </div>
+
+    <!-- Controls -->
+    <div class="flex items-center justify-center gap-8 w-full">
+        <button id="prev-btn" class="p-4 rounded-full bg-zinc-800/50 hover:bg-zinc-700 transition-colors duration-200">
+            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M8.445 14.832A1 1 0 0010 14.023V5.977a1 1 0 00-1.555-.832L4.22 8.668a1 1 0 000 1.664l4.225 3.5zM15.555 14.832a1 1 0 001.555-.832L12.88 10l4.225-3.5a1 1 0 00-1.555-.832l-4.22 3.516a1 1 0 000 1.664l4.22 3.516z"></path></svg>
+        </button>
+        <button id="play-pause-btn" class="p-6 rounded-full transition-all duration-500">
+            <svg id="play-icon" class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8.006v3.988a1 1 0 001.555.832l3.198-1.994a1 1 0 000-1.664l-3.198-1.994z" clip-rule="evenodd"></path></svg>
+            <svg id="pause-icon" class="w-8 h-8 hidden" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h1a1 1 0 001-1V8a1 1 0 00-1-1H8zm4 0a1 1 0 00-1 1v4a1 1 0 001 1h1a1 1 0 001-1V8a1 1 0 00-1-1h-1z" clip-rule="evenodd"></path></svg>
+        </button>
+        <button id="next-btn" class="p-4 rounded-full bg-zinc-800/50 hover:bg-zinc-700 transition-colors duration-200">
+            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M4.445 5.168A1 1 0 003 5.977v8.046a1 1 0 001.555.832l4.225-3.516a1 1 0 000-1.664L4.445 5.168zM11.555 5.168A1 1 0 0010 5.977v8.046a1 1 0 001.555.832l4.225-3.516a1 1 0 000-1.664l-4.225-3.516z"></path></svg>
+        </button>
+    </div>
+
+    <audio id="audio-player" preload="none"></audio>
+    
+    <script>
+        // PWA Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(registration => console.log('ServiceWorker registration successful with scope: ', registration.scope))
+                    .catch(err => console.log('ServiceWorker registration failed: ', err));
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const stations = [
+                { name: 'Now', frequency: '97.9', url: 'https://ipanel.instream.audio:7002/stream', color: '#f97316' }, // Orange
+                { name: 'Blue', frequency: '100.7', url: 'https://27693.live.streamtheworld.com/BLUE_FM_100_7AAC.aac', color: '#3b82f6' }, // Blue
+                { name: 'Aspen', frequency: '102.3', url: 'https://playerservices.streamtheworld.com/api/livestream-redirect/ASPEN.mp3', color: '#10b981' }, // Green
+                { name: 'LN+', frequency: '104.9', url: 'https://stream.radio.co/s2ed3bec0a/listen', color: '#a855f7' } // Purple
+            ];
+
+            let currentStationIndex = 0;
+            let isPlaying = false;
+
+            const audioPlayer = document.getElementById('audio-player');
+            const playPauseBtn = document.getElementById('play-pause-btn');
+            const playIcon = document.getElementById('play-icon');
+            const pauseIcon = document.getElementById('pause-icon');
+            const nextBtn = document.getElementById('next-btn');
+            const prevBtn = document.getElementById('prev-btn');
+            const dialNumber = document.getElementById('dial-number');
+            const radioName = document.getElementById('radio-name');
+            const dialNeedle = document.getElementById('dial-needle');
+            const dialLight = document.getElementById('dial-light');
+            const statusContainer = document.getElementById('status-container');
+            const statusIndicator = document.querySelector('.status-indicator');
+            const statusText = document.getElementById('status-text');
+
+            function updateUI() {
+                const station = stations[currentStationIndex];
+                
+                // Animate text change
+                dialNumber.style.opacity = 0;
+                radioName.style.opacity = 0;
+                
+                setTimeout(() => {
+                    dialNumber.textContent = station.frequency;
+                    radioName.textContent = station.name;
+                    dialNumber.style.opacity = 1;
+                    radioName.style.opacity = 1;
+                }, 300);
+
+                // Update dial needle position
+                const minFreq = 88;
+                const maxFreq = 108;
+                const minPercent = 5;
+                const maxPercent = 95;
+                const freqRange = maxFreq - minFreq;
+                const percentRange = maxPercent - minPercent;
+                const normalizedFreq = (parseFloat(station.frequency) - minFreq) / freqRange;
+                const position = minPercent + (normalizedFreq * percentRange);
+                dialNeedle.style.left = `${position}%`;
+                
+                // Update Colors
+                dialNeedle.style.backgroundColor = station.color;
+                dialNeedle.style.boxShadow = `0 0 10px ${station.color}CC`;
+                dialLight.style.boxShadow = `inset 0 0 30px 5px ${station.color}, 0 0 15px 5px ${station.color}33`;
+                playPauseBtn.style.backgroundColor = station.color;
+                playPauseBtn.style.boxShadow = `0 4px 14px 0 ${station.color}59`;
+                radioName.style.color = station.color;
+                
+                updateMediaSession();
+            }
+
+            function loadStation(index) {
+                const station = stations[index];
+                audioPlayer.src = station.url;
+                audioPlayer.load();
+                updateUI();
+                if (isPlaying) {
+                    audioPlayer.play().catch(e => console.error("Error playing audio:", e));
+                }
+            }
+            
+            function togglePlayPause() {
+                if (isPlaying) {
+                    audioPlayer.pause();
+                } else {
+                    audioPlayer.play().catch(e => console.error("Error playing audio:", e));
+                }
+            }
+
+            audioPlayer.onplaying = () => {
+                isPlaying = true;
+                playIcon.classList.add('hidden');
+                pauseIcon.classList.remove('hidden');
+                statusContainer.classList.remove('off-air');
+                statusContainer.classList.add('on-air');
+                statusIndicator.classList.remove('bg-gray-500');
+                statusIndicator.classList.add('bg-red-500');
+                statusText.textContent = 'ON AIR';
+                statusText.classList.remove('text-gray-400');
+                statusText.classList.add('text-red-400');
+            };
+
+            audioPlayer.onpause = () => {
+                isPlaying = false;
+                playIcon.classList.remove('hidden');
+                pauseIcon.classList.add('hidden');
+                statusContainer.classList.remove('on-air');
+                statusContainer.classList.add('off-air');
+                statusIndicator.classList.add('bg-gray-500');
+                statusIndicator.classList.remove('bg-red-500');
+                statusText.textContent = 'OFF AIR';
+                statusText.classList.add('text-gray-400');
+                statusText.classList.remove('text-red-400');
+            };
+
+            playPauseBtn.addEventListener('click', togglePlayPause);
+            
+            nextBtn.addEventListener('click', () => {
+                currentStationIndex = (currentStationIndex + 1) % stations.length;
+                loadStation(currentStationIndex);
+            });
+
+            prevBtn.addEventListener('click', () => {
+                currentStationIndex = (currentStationIndex - 1 + stations.length) % stations.length;
+                loadStation(currentStationIndex);
+            });
+            
+            // Media Session API for notification controls
+            function updateMediaSession() {
+                if ('mediaSession' in navigator) {
+                    const station = stations[currentStationIndex];
+                    navigator.mediaSession.metadata = new MediaMetadata({
+                        title: station.name,
+                        artist: `FM ${station.frequency}`,
+                        album: 'Radio FM PWA',
+                        artwork: [
+                            { src: `https://placehold.co/96x96/${station.color.substring(1)}/white?text=FM`, sizes: '96x96', type: 'image/png' },
+                            { src: `https://placehold.co/128x128/${station.color.substring(1)}/white?text=FM`, sizes: '128x128', type: 'image/png' },
+                            { src: `https://placehold.co/192x192/${station.color.substring(1)}/white?text=FM`, sizes: '192x192', type: 'image/png' },
+                            { src: `https://placehold.co/256x256/${station.color.substring(1)}/white?text=FM`, sizes: '256x256', type: 'image/png' },
+                            { src: `https://placehold.co/384x384/${station.color.substring(1)}/white?text=FM`, sizes: '384x384', type: 'image/png' },
+                            { src: `https://placehold.co/512x512/${station.color.substring(1)}/white?text=FM`, sizes: '512x512', type: 'image/png' },
+                        ]
+                    });
+
+                    navigator.mediaSession.setActionHandler('play', () => audioPlayer.play());
+                    navigator.mediaSession.setActionHandler('pause', () => audioPlayer.pause());
+                    navigator.mediaSession.setActionHandler('previoustrack', () => prevBtn.click());
+                    navigator.mediaSession.setActionHandler('nexttrack', () => nextBtn.click());
+                }
+            }
+
+            // Initial load
+            loadStation(currentStationIndex);
+        });
+    </script>
+</body>
+</html>
