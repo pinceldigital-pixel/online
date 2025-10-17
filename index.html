@@ -1,330 +1,361 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Radio FM PWA</title>
-    
-    <!-- Meta tags for PWA -->
-    <meta name="theme-color" content="#101010"/>
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Radio FM">
-    <meta name="application-name" content="Radio FM">
-    
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="https://placehold.co/192x192/f97316/white?text=FM">
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Custom Font and Styles -->
-    <style>
-        @font-face {
-            font-family: 'Song';
-            src: url('Song.otf') format('opentype');
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            -webkit-tap-highlight-color: transparent;
-            background-color: #101010;
-        }
-
-        .font-song {
-            font-family: 'Song', sans-serif;
-        }
-
-        /* ON AIR indicator pulse animation */
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-        }
-
-        .on-air .status-indicator {
-            animation: pulse 1.5s infinite;
-            background-color: #ef4444; /* red-500 */
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Radios · Minimal Dark</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0b0b0c">
+  <link rel="icon" href="assets/icon-192.png" sizes="192x192">
+  <style>
+    :root{
+      --bg:#0b0b0c;
+      --card:#141416;
+      --text:#f2f2f2;
+      --muted:#9aa0a6;
+      --accent:#ff7a00;
+      --accent-weak:#ff7a0044;
+      --glass:rgba(255,255,255,0.05);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji','Segoe UI Emoji','Segoe UI Symbol';
+      background:var(--bg);
+      color:var(--text);
+      display:flex; flex-direction:column; 
+    }
+    header{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:18px 16px 8px;
+    }
+    .title{
+      letter-spacing:.22em;
+      font-weight:600; 
+      color:var(--text);
+      opacity:.95;
+    }
+    .moon{
+      width:34px; height:34px; cursor:pointer; border-radius:999px; background:var(--card);
+      display:grid; place-items:center; position:relative; overflow:visible;
+      box-shadow: 0 0 0 1px #1c1d20 inset, 0 4px 18px rgba(0,0,0,.5);
+    }
+    .moon svg{display:block}
+    .moon .ring{
+      position:absolute; inset:-6px; pointer-events:none;
+    }
+    .ring circle{
+      fill:none; stroke:var(--accent); stroke-width:3; opacity:.8;
+      transform:rotate(-90deg); transform-origin:50% 50%;
+      stroke-dasharray: 283; stroke-dashoffset: 283;
+      transition:stroke-dashoffset .4s linear;
+    }
+    .moon.active{outline:2px solid var(--accent-weak)}
+    .stations{display:grid; gap:12px; padding:8px 16px 12px}
+    .btn{
+      background:var(--card); border:none; color:var(--text); padding:18px 16px; border-radius:16px;
+      text-align:left; font-size:18px; display:flex; align-items:center; justify-content:space-between;
+      transition: transform .06s ease;
+      box-shadow: 0 1px 0 #1c1d20 inset, 0 8px 18px rgba(0,0,0,.35);
+    }
+    .btn:active{ transform:scale(.99) }
+    .left{display:flex; align-items:center; gap:12px}
+    .onair{
+      width:26px; height:26px; border-radius:999px; display:grid; place-items:center;
+      background:var(--accent); box-shadow: 0 0 0 0 var(--accent-weak);
+      animation:pulse 1.8s infinite;
+    }
+    @keyframes pulse{
+      0%{ box-shadow: 0 0 0 0 var(--accent-weak)}
+      70%{ box-shadow: 0 0 0 12px transparent}
+      100%{ box-shadow: 0 0 0 0 transparent}
+    }
+    .onair svg{width:14px; height:14px; fill:#0b0b0c}
+    .onair-label{color:var(--accent); font-weight:600; letter-spacing:.06em}
+    .chip{font-size:12px; color:var(--muted)}
+    .now{
+      margin:6px 16px 12px; background:var(--glass); border-radius:16px; padding:14px;
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      box-shadow: 0 1px 0 #1c1d20 inset, 0 6px 16px rgba(0,0,0,.25);
+    }
+    .meta{min-width:0}
+    .track{font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+    .station{font-size:13px; color:var(--muted)}
+    .mini{
+      position:fixed; left:12px; right:12px; bottom:12px; background:var(--card); border-radius:16px; padding:12px 14px;
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.45);
+    }
+    .controls{display:flex; align-items:center; gap:8px}
+    .icon-btn{
+      width:36px; height:36px; border-radius:12px; display:grid; place-items:center; background:#1b1c1f; border:none; color:#fff; cursor:pointer;
+    }
+    /* Equalizer bars */
+    .eq{display:flex; align-items:flex-end; gap:3px; height:22px}
+    .bar{width:3px; background:var(--accent); height:4px; border-radius:2px}
+    /* Toast */
+    .toast{
+      position:fixed; right:14px; bottom:80px; background:#16171a; color:#fff; padding:10px 12px; border-radius:12px;
+      box-shadow:0 10px 25px rgba(0,0,0,.4); opacity:0; transform:translateY(10px);
+      transition: all .25s ease; pointer-events:none; border:1px solid #22242a;
+    }
+    .toast.show{opacity:1; transform:translateY(0)}
+    footer{
+      display:flex; align-items:center; justify-content:center; gap:8px; padding:8px; color:var(--muted); font-size:12px;
+    }
+    .pro{display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background:#1a1b1e; border:1px solid #23262d}
+    .pro img{width:16px; height:16px}
+    .hidden{display:none}
+  </style>
 </head>
-<body class="bg-zinc-900 text-white flex flex-col items-center justify-between h-screen p-4 overflow-hidden">
-
-    <!-- Header -->
-    <header class="w-full max-w-lg mx-auto flex justify-between items-center px-4 pt-4">
-        <!-- Placeholder to balance the centered title -->
-        <div class="w-12 h-12"></div>
-        <div class="text-center">
-            <h1 class="text-2xl font-bold tracking-widest text-zinc-200 font-song">RADIO FM</h1>
-            <div id="status-container" class="off-air flex items-center justify-center gap-2 mt-1">
-                <div class="status-indicator w-2 h-2 rounded-full bg-gray-600 transition-colors duration-300"></div>
-                <span id="status-text" class="font-semibold text-gray-500 tracking-widest text-xs transition-colors duration-300">OFF AIR</span>
-            </div>
-        </div>
-        <button id="timer-button" title="Set 30 min sleep timer" class="w-12 h-12 text-zinc-500 hover:text-orange-400 transition-colors duration-300 flex items-center justify-center rounded-full">
-            <svg id="moon-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 transition-opacity duration-300">
-                <path fill-rule="evenodd" d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-3.934 2.165-7.42 5.282-9.282a.75.75 0 01.819.162z" clip-rule="evenodd"></path>
-            </svg>
-            <span id="timer-countdown" class="absolute text-sm font-bold text-orange-400 pointer-events-none opacity-0 transition-opacity duration-300"></span>
-        </button>
-    </header>
-
-    <!-- Main Content Area -->
-    <div class="flex flex-col items-center justify-center flex-grow w-full">
-        <!-- Radio Info Display -->
-        <div class="text-center my-4">
-            <p id="dial-number" class="font-song text-9xl font-bold text-zinc-200 transition-opacity duration-300">97.9</p>
-            <p id="radio-name" class="text-xl font-semibold tracking-wide transition-all duration-500 mt-2">Now</p>
-        </div>
-
-        <!-- Dial Section -->
-        <div class="w-full max-w-3xl relative my-4">
-            <div id="dial-content" class="w-full h-24 relative">
-                <!-- Ticks and Numbers will be generated here by JS -->
-            </div>
-            <!-- Needle -->
-            <div id="dial-needle" class="absolute top-1/2 h-12 w-1 rounded-full z-20 pointer-events-none" style="left: 10%; transition: left 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55), background-color 0.5s ease-in-out, box-shadow 0.5s ease-in-out;">
-            </div>
-        </div>
+<body>
+  <header>
+    <div class="pro">
+      <img src="assets/pro-badge.png" alt="PRO"> <span>PRO</span>
     </div>
+    <div class="title">RADIO</div>
+    <button id="sleepBtn" class="moon" title="Temporizador 30 min">
+      <!-- moon svg -->
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M21 14.8A9 9 0 0 1 9.2 3a8 8 0 1 0 11.8 11.8Z" stroke="#f0f0f0" stroke-width="1.5" fill="#d6d6d6" opacity=".12"/>
+      </svg>
+      <div class="ring">
+        <svg width="48" height="48"><circle cx="24" cy="24" r="22"></circle></svg>
+      </div>
+    </button>
+  </header>
 
-    <!-- Controls -->
-    <div class="flex items-center justify-center gap-8 w-full pb-6">
-        <button id="prev-btn" class="p-4 rounded-full bg-zinc-800/50 hover:bg-zinc-700 transition-colors duration-200">
-            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
-        </button>
-        <button id="play-pause-btn" class="p-6 rounded-full transition-all duration-500">
-            <svg id="play-icon" class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8.006v3.988a1 1 0 001.555.832l3.198-1.994a1 1 0 000-1.664l-3.198-1.994z" clip-rule="evenodd"></path></svg>
-            <svg id="pause-icon" class="w-8 h-8 hidden" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h1a1 1 0 001-1V8a1 1 0 00-1-1H8zm4 0a1 1 0 00-1 1v4a1 1 0 001 1h1a1 1 0 001-1V8a1 1 0 00-1-1h-1z" clip-rule="evenodd"></path></svg>
-        </button>
-        <button id="next-btn" class="p-4 rounded-full bg-zinc-800/50 hover:bg-zinc-700 transition-colors duration-200">
-            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
-        </button>
+  <div id="stations" class="stations"></div>
+
+  <div class="now">
+    <div class="meta">
+      <div id="track" class="track">—</div>
+      <div id="stationLabel" class="station">Elegí una estación</div>
     </div>
+    <div class="eq" aria-hidden="true">
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+    </div>
+  </div>
 
-    <audio id="audio-player" preload="none"></audio>
-    
-    <script>
-        // PWA Service Worker Registration
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(registration => console.log('ServiceWorker registration successful with scope: ', registration.scope))
-                    .catch(err => console.log('ServiceWorker registration failed: ', err));
-            });
+  <div class="mini">
+    <div class="track" id="miniLabel">—</div>
+    <div class="controls">
+      <button id="playPause" class="icon-btn" aria-label="Play/Pause">
+        <span id="pp">▶</span>
+      </button>
+      <button id="stopBtn" class="icon-btn" aria-label="Stop">■</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <audio id="player" crossorigin="anonymous"></audio>
+
+  <script>
+  const STATIONS = [
+    { id:'now',   name:'Now 97.9',  url:'https://ipanel.instream.audio:7002/stream', onAir:true, meta:{} },
+    { id:'blue',  name:'Blue 100.7',url:'https://27693.live.streamtheworld.com/BLUE_FM_100_7AAC.aac', meta:{ tmwId: 'BLUE_FM_100_7' } },
+    { id:'aspen', name:'Aspen 102.3',url:'https://playerservices.streamtheworld.com/api/livestream-redirect/ASPEN.mp3', meta:{ tmwId: 'ASPEN' } },
+    { id:'lnp',   name:'LN+ 104.9', url:'https://stream.radio.co/s2ed3bec0a/listen', meta:{} },
+  ];
+  // Helpers for StreamTheWorld "now playing" fallback (best-effort; CORS may apply)
+  async function fetchStreamTheWorldNowPlaying(id){
+    // common pattern: https://np.tritondigital.com/public/nowplaying?mountName=ASPEN&... or metadata/nowplaying
+    // We'll try a generic endpoint used by many TMW stations:
+    const endpoints = [
+      `https://np.tritondigital.com/public/nowplaying?mountName=${encodeURIComponent(id)}&numberOfTracks=1&eventType=track`,
+      `https://playerservices.streamtheworld.com/api/livestream-redirect/${encodeURIComponent(id)}_SC`
+    ];
+    for (const url of endpoints){
+      try{
+        const res = await fetch(url, {cache:'no-store'});
+        if (!res.ok) continue;
+        const ct = res.headers.get('content-type')||'';
+        if (ct.includes('application/json')){
+          const j = await res.json();
+          const t = j?.nowplaying?.track?.song || j?.song || j?.title;
+          if (t) return t;
+        } else {
+          const txt = await res.text();
+          const m = txt.match(/StreamTitle='([^']+)'/);
+          if (m) return m[1];
         }
+      }catch(e){ /* ignore */ }
+    }
+    return null;
+  }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const stations = [
-                { name: 'Now', frequency: '97.9', url: 'https://ipanel.instream.audio:7002/stream', color: '#f97316' }, // Orange
-                { name: 'Blue', frequency: '100.7', url: 'https://27693.live.streamtheworld.com/BLUE_FM_100_7AAC.aac', color: '#3b82f6' }, // Blue
-                { name: 'Aspen', frequency: '102.3', url: 'https://playerservices.streamtheworld.com/api/livestream-redirect/ASPEN.mp3', color: '#10b981' }, // Green
-                { name: 'LN+', frequency: '104.9', url: 'https://stream.radio.co/s2ed3bec0a/listen', color: '#a855f7' } // Purple
-            ];
+  // UI
+  const stationsEl = document.getElementById('stations');
+  const player = document.getElementById('player');
+  const pp = document.getElementById('pp');
+  const playPause = document.getElementById('playPause');
+  const stopBtn = document.getElementById('stopBtn');
+  const trackEl = document.getElementById('track');
+  const stationLabel = document.getElementById('stationLabel');
+  const miniLabel = document.getElementById('miniLabel');
+  const toast = document.getElementById('toast');
+  const sleepBtn = document.getElementById('sleepBtn');
+  const ring = sleepBtn.querySelector('.ring circle');
 
-            const MIN_FREQ = 87.5;
-            const MAX_FREQ = 108.5;
+  let current = null;
+  let context, analyser, dataArray, rafId;
+  let sleepTimer = null;
+  let sleepRemaining = 0; // seconds
+  const SLEEP_TOTAL = 30*60; // 30 minutes
 
-            let currentStationIndex = 0;
-            let isPlaying = false;
+  function showToast(msg){
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(()=>toast.classList.remove('show'), 2200);
+  }
 
-            const audioPlayer = document.getElementById('audio-player');
-            const playPauseBtn = document.getElementById('play-pause-btn');
-            const playIcon = document.getElementById('play-icon');
-            const pauseIcon = document.getElementById('pause-icon');
-            const nextBtn = document.getElementById('next-btn');
-            const prevBtn = document.getElementById('prev-btn');
-            const dialNumber = document.getElementById('dial-number');
-            const radioName = document.getElementById('radio-name');
-            const dialNeedle = document.getElementById('dial-needle');
-            const statusContainer = document.getElementById('status-container');
-            const statusIndicator = document.querySelector('.status-indicator');
-            const statusText = document.getElementById('status-text');
+  function buildStations(){
+    stationsEl.innerHTML = '';
+    STATIONS.forEach((s,i)=>{
+      const btn = document.createElement('button');
+      btn.className = 'btn';
+      btn.dataset.id = s.id;
+      const left = document.createElement('div'); left.className='left';
+      if (i===0 || s.onAir){
+        const on = document.createElement('div'); on.className='onair';
+        on.innerHTML = '<svg viewBox="0 0 24 24"><path d="M4 12h4l2-3 4 6 2-3h4"/></svg>';
+        left.appendChild(on);
+        const label = document.createElement('div'); label.className='onair-label'; label.textContent='ON AIR';
+        left.appendChild(label);
+      }
+      const name = document.createElement('div'); name.textContent = s.name;
+      left.appendChild(name);
+      const chip = document.createElement('div'); chip.className='chip'; chip.textContent='Tocar';
+      btn.appendChild(left); btn.appendChild(chip);
+      btn.addEventListener('click', ()=> playStation(s));
+      stationsEl.appendChild(btn);
+    });
+  }
 
-            const timerButton = document.getElementById('timer-button');
-            const moonIcon = document.getElementById('moon-icon');
-            const timerCountdown = document.getElementById('timer-countdown');
+  async function playStation(s){
+    current = s;
+    player.src = s.url + (s.url.includes('?') ? '&' : '?') + 't=' + Date.now(); // bust cache
+    player.play().catch(()=>{});
+    pp.textContent = '⏸';
+    stationLabel.textContent = s.name;
+    miniLabel.textContent = s.name;
+    trackEl.textContent = 'Cargando…';
+    showToast('Reproduciendo ' + s.name);
+    updateMetadata();
+    if (!context) initAnalyser();
+  }
 
-            let sleepTimer = null;
-            let sleepTimerInterval = null;
-            const TIMER_DURATION = 30 * 60 * 1000;
+  function initAnalyser(){
+    try{
+      context = new (window.AudioContext || window.webkitAudioContext)();
+      const source = context.createMediaElementSource(player);
+      analyser = context.createAnalyser();
+      analyser.fftSize = 256;
+      source.connect(analyser);
+      analyser.connect(context.destination);
+      dataArray = new Uint8Array(analyser.frequencyBinCount);
+      animateEq();
+    }catch(e){ /* likely due to CORS or autoplay policy; silently ignore */ }
+  }
 
-            function generateDial() {
-                const dialContent = document.getElementById('dial-content');
-                const fragment = document.createDocumentFragment();
-                const freqRange = MAX_FREQ - MIN_FREQ;
+  function animateEq(){
+    const bars = document.querySelectorAll('.bar');
+    const len = bars.length;
+    const step = ()=>{
+      if (analyser){
+        analyser.getByteFrequencyData(dataArray);
+        for(let i=0;i<len;i++){
+          const idx = (i*2+5)|0;
+          const v = dataArray[idx] || 0;
+          const h = 4 + (v/255)*18; // keep small per request
+          bars[i].style.height = h + 'px';
+        }
+      } else {
+        // fallback idle animation
+        const t = Date.now()/200;
+        for(let i=0;i<len;i++){
+          const h = 4 + (Math.sin(t+i)*0.5+0.5)*18;
+          bars[i].style.height = h + 'px';
+        }
+      }
+      rafId = requestAnimationFrame(step);
+    };
+    step();
+  }
 
-                for (let freq = MIN_FREQ; freq <= MAX_FREQ; freq += 0.2) {
-                    const freqValue = parseFloat(freq.toFixed(1));
-                    const isMajor = freqValue % 1 === 0;
-                    const isMedium = !isMajor && freqValue % 0.5 === 0;
-                    const position = ((freqValue - MIN_FREQ) / freqRange) * 100;
-                    
-                    const tick = document.createElement('div');
-                    tick.className = 'absolute bg-zinc-700 rounded-full';
-                    
-                    if (isMajor) {
-                        tick.style.cssText = `left: ${position}%; top: 50%; transform: translate(-50%, -50%); width: 2px; height: 24px;`;
-                        
-                        const number = document.createElement('span');
-                        number.textContent = freqValue;
-                        // CORRECTED: Brighter color, bigger size, bold and z-index for numbers
-                        number.className = 'absolute text-white text-lg font-bold';
-                        number.style.cssText = `left: ${position}%; top: 0; transform: translateX(-50%); z-index: 10;`;
-                        fragment.appendChild(number);
+  async function updateMetadata(){
+    // Try StreamTheWorld helper when id present
+    let title = null;
+    if (current?.meta?.tmwId){
+      title = await fetchStreamTheWorldNowPlaying(current.meta.tmwId);
+    }
+    // Fallback to mediaSession metadata if set externally
+    if (!title && 'mediaSession' in navigator){
+      const md = navigator.mediaSession.metadata;
+      if (md && (md.title || md.artist)){
+        title = [md.title, md.artist].filter(Boolean).join(' — ');
+      }
+    }
+    trackEl.textContent = title || 'Reproduciendo…';
+    if (title) miniLabel.textContent = `${current.name} · ${title}`;
+  }
 
-                    } else if (isMedium) {
-                        tick.style.cssText = `left: ${position}%; top: 50%; transform: translate(-50%, -50%); width: 2px; height: 16px;`;
-                    } else {
-                        tick.style.cssText = `left: ${position}%; top: 50%; transform: translate(-50%, -50%); width: 1px; height: 8px; background-color: #52525b;`; // zinc-600
-                    }
-                    fragment.appendChild(tick);
-                }
-                dialContent.appendChild(fragment);
-            }
+  // Controls
+  playPause.addEventListener('click', ()=>{
+    if (player.paused){ player.play(); pp.textContent='⏸'; showToast('Play'); }
+    else { player.pause(); pp.textContent='▶'; showToast('Pausa'); }
+  });
+  stopBtn.addEventListener('click', ()=>{
+    player.pause(); player.src=''; pp.textContent='▶'; showToast('Stop');
+  });
+  player.addEventListener('playing', updateMetadata);
+  setInterval(()=>{ if(!player.paused) updateMetadata(); }, 15000);
 
-            function updateUI() {
-                const station = stations[currentStationIndex];
-                
-                dialNumber.style.opacity = 0;
-                radioName.style.opacity = 0;
-                setTimeout(() => {
-                    dialNumber.textContent = station.frequency;
-                    radioName.textContent = station.name;
-                    dialNumber.style.opacity = 1;
-                    radioName.style.opacity = 1;
-                }, 300);
+  // Sleep timer (30 min)
+  function updateRing(){
+    const ratio = Math.max(0, Math.min(1, sleepRemaining / SLEEP_TOTAL));
+    const circumference = 2*Math.PI*22;
+    ring.style.strokeDashoffset = String(circumference * (1 - ratio));
+  }
+  function startSleep(){
+    sleepRemaining = SLEEP_TOTAL;
+    sleepBtn.classList.add('active');
+    updateRing();
+    if (sleepTimer) clearInterval(sleepTimer);
+    sleepTimer = setInterval(()=>{
+      sleepRemaining -= 1; updateRing();
+      if (sleepRemaining <= 0){
+        clearInterval(sleepTimer); sleepTimer=null;
+        player.pause(); pp.textContent='▶';
+        sleepBtn.classList.remove('active');
+        ring.style.strokeDashoffset = String(2*Math.PI*22);
+        showToast('Temporizador: fin');
+      }
+    }, 1000);
+    showToast('Temporizador: 30 min');
+  }
+  function stopSleep(){
+    if (sleepTimer){ clearInterval(sleepTimer); sleepTimer=null; }
+    sleepBtn.classList.remove('active');
+    ring.style.strokeDashoffset = String(2*Math.PI*22);
+    showToast('Temporizador cancelado');
+  }
+  sleepBtn.addEventListener('click', ()=>{
+    if (sleepTimer) stopSleep(); else startSleep();
+  });
 
-                const freqRange = MAX_FREQ - MIN_FREQ;
-                const position = ((parseFloat(station.frequency) - MIN_FREQ) / freqRange) * 100;
-                dialNeedle.style.left = `${position}%`;
-                dialNeedle.style.backgroundColor = station.color;
-                dialNeedle.style.boxShadow = `0 0 8px ${station.color}, 0 0 12px ${station.color}80`;
-                
-                playPauseBtn.style.backgroundColor = station.color;
-                playPauseBtn.style.boxShadow = `0 4px 14px 0 ${station.color}59`;
-                radioName.style.color = station.color;
-                
-                updateMediaSession();
-            }
+  // PWA install prompt helper
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e)=>{
+    e.preventDefault(); deferredPrompt = e;
+    showToast('Instalable: abre el menú y “Agregar a inicio”');
+  });
+  window.addEventListener('appinstalled', ()=> showToast('App instalada'));
 
-            function loadStation(index) {
-                const station = stations[index];
-                audioPlayer.src = station.url;
-                audioPlayer.load();
-                updateUI();
-                if (isPlaying) {
-                    audioPlayer.play().catch(e => console.error("Error playing audio:", e));
-                }
-            }
-            
-            function togglePlayPause() {
-                if (isPlaying) audioPlayer.pause();
-                else audioPlayer.play().catch(e => console.error("Error playing audio:", e));
-            }
-
-            audioPlayer.onplaying = () => {
-                isPlaying = true;
-                playIcon.classList.add('hidden');
-                pauseIcon.classList.remove('hidden');
-                statusContainer.classList.remove('off-air');
-                statusContainer.classList.add('on-air');
-                statusText.textContent = 'ON AIR';
-                statusText.classList.remove('text-gray-500');
-                statusText.classList.add('text-red-400');
-            };
-
-            audioPlayer.onpause = () => {
-                isPlaying = false;
-                playIcon.classList.remove('hidden');
-                pauseIcon.classList.add('hidden');
-                statusContainer.classList.remove('on-air');
-                statusContainer.classList.add('off-air');
-                statusText.textContent = 'OFF AIR';
-                statusText.classList.add('text-gray-500');
-                statusText.classList.remove('text-red-400');
-            };
-
-            playPauseBtn.addEventListener('click', togglePlayPause);
-            nextBtn.addEventListener('click', () => {
-                currentStationIndex = (currentStationIndex + 1) % stations.length;
-                loadStation(currentStationIndex);
-            });
-            prevBtn.addEventListener('click', () => {
-                currentStationIndex = (currentStationIndex - 1 + stations.length) % stations.length;
-                loadStation(currentStationIndex);
-            });
-
-            function formatTime(ms) {
-                const totalSeconds = Math.ceil(ms / 1000);
-                const minutes = Math.floor(totalSeconds / 60);
-                const seconds = totalSeconds % 60;
-                return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-            }
-
-            function updateCountdown(endTime) {
-                const remaining = endTime - Date.now();
-                if (remaining <= 0) {
-                    timerCountdown.textContent = '';
-                    clearInterval(sleepTimerInterval);
-                } else {
-                    timerCountdown.textContent = formatTime(remaining);
-                }
-            }
-
-            function stopSleepTimer() {
-                if (sleepTimer) clearTimeout(sleepTimer);
-                if (sleepTimerInterval) clearInterval(sleepTimerInterval);
-                sleepTimer = null;
-                sleepTimerInterval = null;
-                
-                timerButton.classList.remove('text-orange-400');
-                timerButton.title = 'Set 30 min sleep timer';
-                moonIcon.style.opacity = '1';
-                timerCountdown.style.opacity = '0';
-            }
-
-            function startSleepTimer() {
-                stopSleepTimer();
-                const endTime = Date.now() + TIMER_DURATION;
-                
-                timerButton.classList.add('text-orange-400');
-                timerButton.title = 'Cancel sleep timer';
-                moonIcon.style.opacity = '0';
-                timerCountdown.style.opacity = '1';
-
-                sleepTimer = setTimeout(() => {
-                    audioPlayer.pause();
-                    stopSleepTimer();
-                }, TIMER_DURATION);
-                
-                updateCountdown(endTime);
-                sleepTimerInterval = setInterval(() => updateCountdown(endTime), 1000);
-            }
-
-            timerButton.addEventListener('click', () => {
-                if (sleepTimer) stopSleepTimer();
-                else startSleepTimer();
-            });
-            
-            function updateMediaSession() {
-                if ('mediaSession' in navigator) {
-                    const station = stations[currentStationIndex];
-                    navigator.mediaSession.metadata = new MediaMetadata({
-                        title: station.name,
-                        artist: `FM ${station.frequency}`,
-                        album: 'Radio FM PWA',
-                        artwork: [{ src: `https://placehold.co/512x512/${station.color.substring(1)}/white?text=FM`, sizes: '512x512', type: 'image/png' }]
-                    });
-                    navigator.mediaSession.setActionHandler('play', () => audioPlayer.play());
-                    navigator.mediaSession.setActionHandler('pause', () => audioPlayer.pause());
-                    navigator.mediaSession.setActionHandler('previoustrack', () => prevBtn.click());
-                    navigator.mediaSession.setActionHandler('nexttrack', () => nextBtn.click());
-                }
-            }
-
-            // Initial setup
-            generateDial();
-            loadStation(currentStationIndex);
-        });
-    </script>
+  // Build UI & default play first
+  buildStations();
+  </script>
 </body>
 </html>
