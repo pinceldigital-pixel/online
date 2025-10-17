@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Radio FM PWA</title>
+    
+    <!-- Meta tags for PWA -->
+    <meta name="theme-color" content="#101010"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Radio FM">
+    <meta name="application-name" content="Radio FM">
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://placehold.co/192x192/f97316/white?text=FM">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom Font and Styles -->
+    <style>
+        @font-face {
+            font-family: 'Song';
+            src: url('Song.otf') format('opentype');
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            background-color: #101010;
+        }
+
+        .font-song {
+            font-family: 'Song', sans-serif;
+        }
+
+        /* ON AIR indicator pulse animation */
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .on-air .status-indicator {
+            animation: pulse 1.5s infinite;
+            background-color: #ef4444; /* red-500 */
+        }
+    </style>
+</head>
+<body class="bg-zinc-900 text-white flex flex-col items-center justify-between h-screen p-4 overflow-hidden">
+
+    <!-- Header -->
+    <header class="w-full max-w-lg mx-auto flex justify-between items-center px-4 pt-4">
+        <button title="Fullscreen" class="w-12 h-12 text-zinc-500 hover:text-orange-400 transition-colors duration-300 flex items-center justify-center rounded-full">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+                <path fill-rule="evenodd" d="M15 3.75a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0V5.56l-3.47 3.47a.75.75 0 01-1.06-1.06L13.19 4.5h-2.44a.75.75 0 010-1.5h4.5zm-6 16.5a.75.75 0 01-.75-.75v-4.5a.75.75 0 011.5 0v2.44l3.47-3.47a.75.75 0 011.06 1.06L6.81 19.5h2.44a.75.75 0 010 1.5h-4.5z" clip-rule="evenodd"></path>
+            </svg>
+        </button>
+        <div class="text-center">
+            <h1 class="text-2xl font-bold tracking-widest text-zinc-200 font-song">RADIO FM</h1>
+            <div id="status-container" class="off-air flex items-center justify-center gap-2 mt-1">
+                <div class="status-indicator w-2 h-2 rounded-full bg-gray-600 transition-colors duration-300"></div>
+                <span id="status-text" class="font-semibold text-gray-500 tracking-widest text-xs transition-colors duration-300">OFF AIR</span>
+            </div>
+        </div>
+        <button id="timer-button" title="Set 30 min sleep timer" class="w-12 h-12 text-zinc-500 hover:text-orange-400 transition-colors duration-300 flex items-center justify-center rounded-full">
+            <svg id="moon-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 transition-opacity duration-300">
+                <path fill-rule="evenodd" d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-3.934 2.165-7.42 5.282-9.282a.75.75 0 01.819.162z" clip-rule="evenodd"></path>
+            </svg>
+            <span id="timer-countdown" class="absolute text-sm font-bold text-orange-400 pointer-events-none opacity-0 transition-opacity duration-300"></span>
+        </button>
+    </header>
+
+    <!-- Dial Section -->
+    <div class="w-full max-w-3xl flex-grow flex flex-col justify-center relative">
+        <div id="dial-content" class="w-full h-24 relative">
+            <!-- Ticks and Numbers will be generated here by JS -->
+        </div>
+        <!-- Needle -->
+        <div id="dial-needle" class="absolute top-1/2 h-12 w-1 rounded-full z-20 pointer-events-none" style="left: 10%; transition: left 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55), background-color 0.5s ease-in-out, box-shadow 0.5s ease-in-out;">
+        </div>
+    </div>
+
+
+    <!-- Radio Info Display -->
+    <div class="text-center my-6">
+        <p id="dial-number" class="font-song text-7xl font-bold text-zinc-200 transition-opacity duration-300">97.9</p>
+        <p id="radio-name" class="text-xl font-semibold tracking-wide transition-all duration-500">Now</p>
+    </div>
+
+    <!-- Controls -->
+    <div class="flex items-center justify-center gap-8 w-full my-6">
+        <button id="prev-btn" class="p-4 rounded-full bg-zinc-800/50 hover:bg-zinc-700 transition-colors duration-200">
+            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+        </button>
+        <button id="play-pause-btn" class="p-6 rounded-full transition-all duration-500">
+            <svg id="play-icon" class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8.006v3.988a1 1 0 001.555.832l3.198-1.994a1 1 0 000-1.664l-3.198-1.994z" clip-rule="evenodd"></path></svg>
+            <svg id="pause-icon" class="w-8 h-8 hidden" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h1a1 1 0 001-1V8a1 1 0 00-1-1H8zm4 0a1 1 0 00-1 1v4a1 1 0 001 1h1a1 1 0 001-1V8a1 1 0 00-1-1h-1z" clip-rule="evenodd"></path></svg>
+        </button>
+        <button id="next-btn" class="p-4 rounded-full bg-zinc-800/50 hover:bg-zinc-700 transition-colors duration-200">
+            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
+        </button>
+    </div>
+
+    <audio id="audio-player" preload="none"></audio>
+    
+    <script>
+        // PWA Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(registration => console.log('ServiceWorker registration successful with scope: ', registration.scope))
+                    .catch(err => console.log('ServiceWorker registration failed: ', err));
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const stations = [
+                { name: 'Now', frequency: '97.9', url: 'https://ipanel.instream.audio:7002/stream', color: '#f97316' }, // Orange
+                { name: 'Blue', frequency: '100.7', url: 'https://27693.live.streamtheworld.com/BLUE_FM_100_7AAC.aac', color: '#3b82f6' }, // Blue
+                { name: 'Aspen', frequency: '102.3', url: 'https://playerservices.streamtheworld.com/api/livestream-redirect/ASPEN.mp3', color: '#10b981' }, // Green
+                { name: 'LN+', frequency: '104.9', url: 'https://stream.radio.co/s2ed3bec0a/listen', color: '#a855f7' } // Purple
+            ];
+
+            const MIN_FREQ = 87.5;
+            const MAX_FREQ = 108.5;
+
+            let currentStationIndex = 0;
+            let isPlaying = false;
+
+            const audioPlayer = document.getElementById('audio-player');
+            const playPauseBtn = document.getElementById('play-pause-btn');
+            const playIcon = document.getElementById('play-icon');
+            const pauseIcon = document.getElementById('pause-icon');
+            const nextBtn = document.getElementById('next-btn');
+            const prevBtn = document.getElementById('prev-btn');
+            const dialNumber = document.getElementById('dial-number');
+            const radioName = document.getElementById('radio-name');
+            const dialNeedle = document.getElementById('dial-needle');
+            const statusContainer = document.getElementById('status-container');
+            const statusIndicator = document.querySelector('.status-indicator');
+            const statusText = document.getElementById('status-text');
+
+            const timerButton = document.getElementById('timer-button');
+            const moonIcon = document.getElementById('moon-icon');
+            const timerCountdown = document.getElementById('timer-countdown');
+
+            let sleepTimer = null;
+            let sleepTimerInterval = null;
+            const TIMER_DURATION = 30 * 60 * 1000;
+
+            function generateDial() {
+                const dialContent = document.getElementById('dial-content');
+                const fragment = document.createDocumentFragment();
+                const freqRange = MAX_FREQ - MIN_FREQ;
+
+                for (let freq = MIN_FREQ; freq <= MAX_FREQ; freq += 0.2) {
+                    const freqValue = parseFloat(freq.toFixed(1));
+                    const isMajor = freqValue % 1 === 0;
+                    const isMedium = !isMajor && freqValue % 0.5 === 0;
+                    const position = ((freqValue - MIN_FREQ) / freqRange) * 100;
+                    
+                    const tick = document.createElement('div');
+                    tick.className = 'absolute bg-zinc-700 rounded-full';
+                    
+                    if (isMajor) {
+                        tick.style.cssText = `left: ${position}%; top: 50%; transform: translate(-50%, -50%); width: 2px; height: 24px;`;
+                        
+                        const number = document.createElement('span');
+                        number.textContent = freqValue;
+                        number.className = 'absolute text-zinc-200 text-sm font-semibold';
+                        number.style.cssText = `left: ${position}%; top: 0; transform: translateX(-50%);`;
+                        fragment.appendChild(number);
+
+                    } else if (isMedium) {
+                        tick.style.cssText = `left: ${position}%; top: 50%; transform: translate(-50%, -50%); width: 2px; height: 16px;`;
+                    } else {
+                        tick.style.cssText = `left: ${position}%; top: 50%; transform: translate(-50%, -50%); width: 1px; height: 8px; background-color: #52525b;`; // zinc-600
+                    }
+                    fragment.appendChild(tick);
+                }
+                dialContent.appendChild(fragment);
+            }
+
+            function updateUI() {
+                const station = stations[currentStationIndex];
+                
+                dialNumber.style.opacity = 0;
+                radioName.style.opacity = 0;
+                setTimeout(() => {
+                    dialNumber.textContent = station.frequency;
+                    radioName.textContent = station.name;
+                    dialNumber.style.opacity = 1;
+                    radioName.style.opacity = 1;
+                }, 300);
+
+                const freqRange = MAX_FREQ - MIN_FREQ;
+                const position = ((parseFloat(station.frequency) - MIN_FREQ) / freqRange) * 100;
+                dialNeedle.style.left = `${position}%`;
+                dialNeedle.style.backgroundColor = station.color;
+                dialNeedle.style.boxShadow = `0 0 8px ${station.color}, 0 0 12px ${station.color}80`;
+                
+                playPauseBtn.style.backgroundColor = station.color;
+                playPauseBtn.style.boxShadow = `0 4px 14px 0 ${station.color}59`;
+                radioName.style.color = station.color;
+                
+                updateMediaSession();
+            }
+
+            function loadStation(index) {
+                const station = stations[index];
+                audioPlayer.src = station.url;
+                audioPlayer.load();
+                updateUI();
+                if (isPlaying) {
+                    audioPlayer.play().catch(e => console.error("Error playing audio:", e));
+                }
+            }
+            
+            function togglePlayPause() {
+                if (isPlaying) audioPlayer.pause();
+                else audioPlayer.play().catch(e => console.error("Error playing audio:", e));
+            }
+
+            audioPlayer.onplaying = () => {
+                isPlaying = true;
+                playIcon.classList.add('hidden');
+                pauseIcon.classList.remove('hidden');
+                statusContainer.classList.remove('off-air');
+                statusContainer.classList.add('on-air');
+                statusText.textContent = 'ON AIR';
+                statusText.classList.remove('text-gray-500');
+                statusText.classList.add('text-red-400');
+            };
+
+            audioPlayer.onpause = () => {
+                isPlaying = false;
+                playIcon.classList.remove('hidden');
+                pauseIcon.classList.add('hidden');
+                statusContainer.classList.remove('on-air');
+                statusContainer.classList.add('off-air');
+                statusText.textContent = 'OFF AIR';
+                statusText.classList.add('text-gray-500');
+                statusText.classList.remove('text-red-400');
+            };
+
+            playPauseBtn.addEventListener('click', togglePlayPause);
+            nextBtn.addEventListener('click', () => {
+                currentStationIndex = (currentStationIndex + 1) % stations.length;
+                loadStation(currentStationIndex);
+            });
+            prevBtn.addEventListener('click', () => {
+                currentStationIndex = (currentStationIndex - 1 + stations.length) % stations.length;
+                loadStation(currentStationIndex);
+            });
+
+            function formatTime(ms) {
+                const totalSeconds = Math.ceil(ms / 1000);
+                const minutes = Math.floor(totalSeconds / 60);
+                const seconds = totalSeconds % 60;
+                return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }
+
+            function updateCountdown(endTime) {
+                const remaining = endTime - Date.now();
+                if (remaining <= 0) {
+                    timerCountdown.textContent = '';
+                    clearInterval(sleepTimerInterval);
+                } else {
+                    timerCountdown.textContent = formatTime(remaining);
+                }
+            }
+
+            function stopSleepTimer() {
+                if (sleepTimer) clearTimeout(sleepTimer);
+                if (sleepTimerInterval) clearInterval(sleepTimerInterval);
+                sleepTimer = null;
+                sleepTimerInterval = null;
+                
+                timerButton.classList.remove('text-orange-400');
+                timerButton.title = 'Set 30 min sleep timer';
+                moonIcon.style.opacity = '1';
+                timerCountdown.style.opacity = '0';
+            }
+
+            function startSleepTimer() {
+                stopSleepTimer();
+                const endTime = Date.now() + TIMER_DURATION;
+                
+                timerButton.classList.add('text-orange-400');
+                timerButton.title = 'Cancel sleep timer';
+                moonIcon.style.opacity = '0';
+                timerCountdown.style.opacity = '1';
+
+                sleepTimer = setTimeout(() => {
+                    audioPlayer.pause();
+                    stopSleepTimer();
+                }, TIMER_DURATION);
+                
+                updateCountdown(endTime);
+                sleepTimerInterval = setInterval(() => updateCountdown(endTime), 1000);
+            }
+
+            timerButton.addEventListener('click', () => {
+                if (sleepTimer) stopSleepTimer();
+                else startSleepTimer();
+            });
+            
+            function updateMediaSession() {
+                if ('mediaSession' in navigator) {
+                    const station = stations[currentStationIndex];
+                    navigator.mediaSession.metadata = new MediaMetadata({
+                        title: station.name,
+                        artist: `FM ${station.frequency}`,
+                        album: 'Radio FM PWA',
+                        artwork: [{ src: `https://placehold.co/512x512/${station.color.substring(1)}/white?text=FM`, sizes: '512x512', type: 'image/png' }]
+                    });
+                    navigator.mediaSession.setActionHandler('play', () => audioPlayer.play());
+                    navigator.mediaSession.setActionHandler('pause', () => audioPlayer.pause());
+                    navigator.mediaSession.setActionHandler('previoustrack', () => prevBtn.click());
+                    navigator.mediaSession.setActionHandler('nexttrack', () => nextBtn.click());
+                }
+            }
+
+            // Initial setup
+            generateDial();
+            loadStation(currentStationIndex);
+        });
+    </script>
+</body>
+</html>
