@@ -17,9 +17,9 @@
     .moon svg{display:block}
     .moon.active svg path{stroke:var(--accent)!important; fill:var(--accent)!important; opacity:1!important;}
     main{ display:flex; flex-direction:column; gap:10px }
-    .now{ margin:10px 16px 8px; background:var(--glass); border-radius:22px; padding:18px; display:flex; align-items:center; justify-content:space-between; gap:10px; box-shadow: 0 1px 0 #1c1d20 inset, 0 10px 24px rgba(0,0,0,.3); }
-    .nowContent{ display:flex; flex-direction:column; gap:6px; min-width:0 }
-    .nowFreq{ font-size:30px; font-weight:800; letter-spacing:.02em }
+    .now{ margin:10px 16px 8px; background:var(--glass); border-radius:22px; padding:24px; display:flex; align-items:center; justify-content:center; gap:16px; box-shadow: 0 1px 0 #1c1d20 inset, 0 10px 24px rgba(0,0,0,.3); min-height:180px; }
+    .nowContent{ display:flex; flex-direction:column; gap:8px; min-width:0; align-items:center; text-align:center }
+    .nowFreq{ font-size:34px; font-weight:800; letter-spacing:.02em }
     .nowLabel{ font-size:16px; color:var(--muted); font-weight:700; letter-spacing:.08em; text-transform:uppercase }
     .onair-chip{ display:flex; align-items:center; gap:8px; padding:8px 14px; width:max-content; background:#15161a; border:1px solid #23262d; border-radius:999px; letter-spacing:.08em; font-weight:700 }
     .onair-chip .dot{ width:10px; height:10px; background:var(--accent); border-radius:50%; box-shadow:0 0 0 0 var(--accent-weak); animation:pulse 1.8s infinite }
@@ -68,17 +68,14 @@
   </main>
 
   <div class="mini">
-    <div class="controls">
-      <button id="prevBtn" class="icon-btn" aria-label="Prev">
-        <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#ffffff" d="M6 6h2v12H6zm3 6l9 6V6z"/></svg>
-      </button>
-      <button id="playPause" class="icon-btn" aria-label="Play/Pause">
-        <svg id="ppPlay" class="ppicon" width="22" height="22" viewBox="0 0 24 24"><path fill="#ffffff" d="M8 5v14l11-7z"/></svg>
-        <svg id="ppPause" class="ppicon hidden" width="22" height="22" viewBox="0 0 24 24"><path fill="#ffffff" d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>
-      </button>
-      <input id="vol" type="range" min="0" max="1" step="0.01" value="1" style="width:140px">
-    </div>
+  <div class="controls">
+    <button id="playPause" class="icon-btn" aria-label="Play/Pause">
+      <svg id="ppPlay" class="ppicon" width="22" height="22" viewBox="0 0 24 24"><path fill="#ffffff" d="M8 5v14l11-7z"/></svg>
+      <svg id="ppPause" class="ppicon hidden" width="22" height="22" viewBox="0 0 24 24"><path fill="#ffffff" d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>
+    </button>
+    <input id="vol" type="range" min="0" max="1" step="0.01" value="1" style="width:160px">
   </div>
+</div>
 
   <div id="toast" class="toast"></div>
   <audio id="player" crossorigin="anonymous"></audio>
@@ -96,7 +93,7 @@
   const playPause = document.getElementById('playPause');
   const ppPlay = document.getElementById('ppPlay');
   const ppPause = document.getElementById('ppPause');
-  const prevBtn = document.getElementById('prevBtn');
+  
   const vol = document.getElementById('vol');
   const trackEl = document.getElementById('track');
   const stationLabel = document.getElementById('stationLabel');
@@ -196,7 +193,7 @@
     if (player.paused){ player.play(); ppPlay.classList.add('hidden'); ppPause.classList.remove('hidden'); }
     else { player.pause(); ppPause.classList.add('hidden'); ppPlay.classList.remove('hidden'); }
   });
-  prevBtn.addEventListener('click', ()=>{ index=(index-1+STATIONS.length)%STATIONS.length; playStation(STATIONS[index]); });
+  
   vol.addEventListener('input', ()=>{ player.volume = parseFloat(vol.value||'1'); });
   player.addEventListener('playing', updateMetadata);
   setInterval(()=>{ if(!player.paused) updateMetadata(); }, 15000);
