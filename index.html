@@ -83,7 +83,7 @@
   </div>
 
   <div id="toast" class="toast"></div>
-  <audio id="player" crossorigin="anonymous"></audio>
+  <audio id="player" crossorigin="anonymous" crossorigin="anonymous"></audio>
 
   <script>
   const STATIONS = [
@@ -107,7 +107,7 @@
   const onAirChip = document.getElementById('onAirChip');
   const onAirText = document.getElementById('onAirText');
 
-  let current=null;
+  let current=null; let context=null, analyser=null, dataArray=null, rafId=null;
 
   function showToast(msg){ toast.textContent = msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), 2200); }
   function setAirState(isOn){ if(isOn){ onAirChip.classList.remove('off'); onAirText.textContent='ON AIR'; } else { onAirChip.classList.add('off'); onAirText.textContent='OFF AIR'; } }
@@ -124,6 +124,52 @@
     });
   }
 
+  function initAnalyser(){
+    try{
+      if (context) return;
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      context = new AudioCtx();
+      const src = context.createMediaElementSource(player);
+      analyser = context.createAnalyser();
+      analyser.fftSize = 256;
+      src.connect(analyser);
+      analyser.connect(context.destination);
+      dataArray = new Uint8Array(analyser.frequencyBinCount);
+    }catch(e){
+      // Si falla (CORS o política), anulamos analyser para usar fallback
+      analyser = null;
+    }
+  }
+  function animateEq(){
+    const bars = document.querySelectorAll('.bar');
+    const len = bars.length;
+    const step = ()=>{
+      if (analyser){
+        try{
+          analyser.getByteFrequencyData(dataArray);
+          for(let i=0;i<len;i++){
+            const idx = (i*2+5)|0;
+            const v = dataArray[idx]||0;
+            const h = 4 + (v/255)*18;
+            bars[i].style.height = h + 'px';
+          }
+        }catch(e){
+          // Si algo peta, caemos al fallback
+          analyser = null;
+        }
+      }
+      if (!analyser){
+        const t = Date.now()/210;
+        for(let i=0;i<len;i++){
+          const h = 4 + (Math.sin(t + i*0.7)*0.5 + 0.5)*18;
+          bars[i].style.height = h + 'px';
+        }
+      }
+      rafId = requestAnimationFrame(step);
+    };
+    cancelAnimationFrame(rafId || 0);
+    rafId = requestAnimationFrame(step);
+  }
   function updateMetadata(){
     if (player.paused || !player.src){ trackEl.textContent='—'; setAirState(false); }
     else { trackEl.textContent='Reproduciendo…'; setAirState(true); }
@@ -140,12 +186,12 @@
   }
 
   playPause.addEventListener('click', ()=>{
-    if (player.paused){ player.play(); ppPlay.classList.add('hidden'); ppPause.classList.remove('hidden'); setAirState(true); }
+    if (player.paused){ player.play(); try{initAnalyser();}catch(e){} animateEq(); ppPlay.classList.add('hidden'); ppPause.classList.remove('hidden'); setAirState(true); }
     else { player.pause(); ppPause.classList.add('hidden'); ppPlay.classList.remove('hidden'); setAirState(false); trackEl.textContent='—'; }
   });
   vol.addEventListener('input', ()=>{ player.volume=parseFloat(vol.value||'1'); });
 
-  player.addEventListener('playing', updateMetadata);
+  player.addEventListener('playing', ()=>{ try{initAnalyser();}catch(e){} animateEq(); updateMetadata(); });
   player.addEventListener('pause', updateMetadata);
   player.addEventListener('ended', updateMetadata);
   player.addEventListener('emptied', updateMetadata);
