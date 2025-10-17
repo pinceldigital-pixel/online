@@ -37,13 +37,13 @@
       opacity:.95;
     }
     .moon{
-      width:34px; height:34px; cursor:pointer; border-radius:999px; background:var(--card);
+      width:40px; height:40px; cursor:pointer; border-radius:999px; background:var(--card);
       display:grid; place-items:center; position:relative; overflow:visible;
       box-shadow: 0 0 0 1px #1c1d20 inset, 0 4px 18px rgba(0,0,0,.5);
     }
     .moon svg{display:block}
     .moon .ring{
-      position:absolute; inset:-6px; pointer-events:none;
+      position:absolute; inset:-8px; pointer-events:none;
     }
     .ring circle{
       fill:none; stroke:var(--accent); stroke-width:3; opacity:.8;
@@ -72,6 +72,9 @@
       100%{ box-shadow: 0 0 0 0 transparent}
     }
     .onair svg{width:14px; height:14px; fill:#0b0b0c}
+    .onair-top{display:flex; align-items:center; gap:8px; padding:6px 12px; margin:0 16px 6px; width:max-content; background:#15161a; border:1px solid #23262d; border-radius:999px}
+    .onair-top .dot{width:10px; height:10px; background:var(--accent); border-radius:50%; box-shadow:0 0 0 0 var(--accent-weak); animation:pulse 1.8s infinite}
+
     .onair-label{color:var(--accent); font-weight:600; letter-spacing:.06em}
     .chip{font-size:12px; color:var(--muted)}
     .now{
@@ -121,10 +124,15 @@
         <path d="M21 14.8A9 9 0 0 1 9.2 3a8 8 0 1 0 11.8 11.8Z" stroke="#f0f0f0" stroke-width="1.5" fill="#d6d6d6" opacity=".12"/>
       </svg>
       <div class="ring">
-        <svg width="48" height="48"><circle cx="24" cy="24" r="22"></circle></svg>
+        <svg width="56" height="56"><circle cx="28" cy="28" r="26"></circle></svg>
       </div>
     </button>
   </header>
+
+  <div id="onAirTop" class="onair-top hidden">
+    <span class="dot"></span><span>ON AIR</span>
+  </div>
+
 
   <div id="stations" class="stations"></div>
 
@@ -141,10 +149,16 @@
   <div class="mini">
     <div class="track" id="miniLabel">—</div>
     <div class="controls">
-      <button id="playPause" class="icon-btn" aria-label="Play/Pause">
-        <span id="pp">▶</span>
+      <button id="prevBtn" class="icon-btn" aria-label="Prev">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#ffffff" d="M6 6h2v12H6zm3 6l9 6V6z"/></svg>
       </button>
-      <button id="stopBtn" class="icon-btn" aria-label="Stop">■</button>
+      <button id="playPause" class="icon-btn" aria-label="Play/Pause">
+        <svg id="ppPlay" class="ppicon" width="20" height="20" viewBox="0 0 24 24"><path fill="#ffffff" d="M8 5v14l11-7z"/></svg>
+        <svg id="ppPause" class="ppicon hidden" width="20" height="20" viewBox="0 0 24 24"><path fill="#ffffff" d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>
+      </button>
+      <button id="stopBtn" class="icon-btn" aria-label="Stop"><svg width="18" height="18" viewBox="0 0 24 24"><path fill="#ffffff" d="M6 6h12v12H6z"/></svg></button>
+      <button id="nextBtn" class="icon-btn" aria-label="Next"><svg width="18" height="18" viewBox="0 0 24 24"><path fill="#ffffff" d="M8 18l9-6-9-6v12zm10 0h-2V6h2v12z"/></svg></button>
+      <button id="muteBtn" class="icon-btn" aria-label="Mute"><svg width="18" height="18" viewBox="0 0 24 24"><path fill="#ffffff" d="M5 9v6h4l5 5V4L9 9H5z"/></svg></button>
     </div>
   </div>
 
@@ -197,9 +211,16 @@
   const miniLabel = document.getElementById('miniLabel');
   const toast = document.getElementById('toast');
   const sleepBtn = document.getElementById('sleepBtn');
+  const onAirTop = document.getElementById('onAirTop');
+  const ppPlay = document.getElementById('ppPlay');
+  const ppPause = document.getElementById('ppPause');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const muteBtn = document.getElementById('muteBtn');
   const ring = sleepBtn.querySelector('.ring circle');
 
   let current = null;
+  let index = 0;
   let context, analyser, dataArray, rafId;
   let sleepTimer = null;
   let sleepRemaining = 0; // seconds
@@ -227,7 +248,9 @@
       }
       const name = document.createElement('div'); name.textContent = s.name;
       left.appendChild(name);
-      const chip = document.createElement('div'); chip.className='chip'; chip.textContent='Tocar';
+      const chip = document.createElement('div'); chip.className='chip'; chip.innerHTML = `
+<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="#ffffff" d="M8 5v14l11-7z"/></svg>`;
+
       btn.appendChild(left); btn.appendChild(chip);
       btn.addEventListener('click', ()=> playStation(s));
       stationsEl.appendChild(btn);
@@ -235,14 +258,16 @@
   }
 
   async function playStation(s){
+    index = STATIONS.findIndex(x=>x.id===s.id);
     current = s;
     player.src = s.url + (s.url.includes('?') ? '&' : '?') + 't=' + Date.now(); // bust cache
     player.play().catch(()=>{});
-    pp.textContent = '⏸';
+    ppPlay.classList.add('hidden'); ppPause.classList.remove('hidden');
     stationLabel.textContent = s.name;
     miniLabel.textContent = s.name;
     trackEl.textContent = 'Cargando…';
     showToast('Reproduciendo ' + s.name);
+    onAirTop.classList.remove('hidden');
     updateMetadata();
     if (!context) initAnalyser();
   }
@@ -304,11 +329,24 @@
 
   // Controls
   playPause.addEventListener('click', ()=>{
-    if (player.paused){ player.play(); pp.textContent='⏸'; showToast('Play'); }
-    else { player.pause(); pp.textContent='▶'; showToast('Pausa'); }
+    if (player.paused){ player.play(); ppPlay.classList.add('hidden'); ppPause.classList.remove('hidden'); showToast('Play'); }
+    else { player.pause(); ppPause.classList.add('hidden'); ppPlay.classList.remove('hidden'); showToast('Pausa'); }
   });
+  prevBtn.addEventListener('click', ()=>{
+    index = (index - 1 + STATIONS.length) % STATIONS.length;
+    playStation(STATIONS[index]);
+  });
+  nextBtn.addEventListener('click', ()=>{
+    index = (index + 1) % STATIONS.length;
+    playStation(STATIONS[index]);
+  });
+  muteBtn.addEventListener('click', ()=>{
+    player.muted = !player.muted;
+    showToast(player.muted? 'Mute' : 'Unmute');
+  });
+
   stopBtn.addEventListener('click', ()=>{
-    player.pause(); player.src=''; pp.textContent='▶'; showToast('Stop');
+    player.pause(); player.src=''; ppPause.classList.add('hidden'); ppPlay.classList.remove('hidden'); showToast('Stop');
   });
   player.addEventListener('playing', updateMetadata);
   setInterval(()=>{ if(!player.paused) updateMetadata(); }, 15000);
@@ -316,7 +354,7 @@
   // Sleep timer (30 min)
   function updateRing(){
     const ratio = Math.max(0, Math.min(1, sleepRemaining / SLEEP_TOTAL));
-    const circumference = 2*Math.PI*22;
+    const circumference = 2*Math.PI*26;
     ring.style.strokeDashoffset = String(circumference * (1 - ratio));
   }
   function startSleep(){
