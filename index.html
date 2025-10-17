@@ -166,11 +166,11 @@
 
   <script>
   const STATIONS = [
-    { id:'now',   name:'Now 97.9',  url:'https://ipanel.instream.audio:7002/stream', meta:{} },
-    { id:'blue',  name:'Blue 100.7',url:'https://27693.live.streamtheworld.com/BLUE_FM_100_7AAC.aac', meta:{ tmwId: 'BLUE_FM_100_7' } },
-    { id:'aspen', name:'Aspen 102.3',url:'https://playerservices.streamtheworld.com/api/livestream-redirect/ASPEN.mp3', meta:{ tmwId: 'ASPEN' } },
-    { id:'lnp',   name:'LN+ 104.9', url:'https://stream.radio.co/s2ed3bec0a/listen', meta:{} },
-  ];
+  { id:'now',   name:'Now 97.9',  url:'https://ipanel.instream.audio:7002/stream', icon:'assets/now.png', meta:{} },
+  { id:'blue',  name:'Blue 100.7',url:'https://27693.live.streamtheworld.com/BLUE_FM_100_7AAC.aac', icon:'assets/blue.png', meta:{ tmwId: 'BLUE_FM_100_7' } },
+  { id:'aspen', name:'Aspen 102.3',url:'https://playerservices.streamtheworld.com/api/livestream-redirect/ASPEN.mp3', icon:'assets/aspen.png', meta:{ tmwId: 'ASPEN' } },
+  { id:'lnp',   name:'LN+ 104.9', url:'https://stream.radio.co/s2ed3bec0a/listen', icon:'assets/lnp.png', meta:{} },
+];
   // Helpers for StreamTheWorld "now playing" fallback (best-effort; CORS may apply)
   async function fetchStreamTheWorldNowPlaying(id){
     // common pattern: https://np.tritondigital.com/public/nowplaying?mountName=ASPEN&... or metadata/nowplaying
@@ -237,8 +237,12 @@
       btn.className = 'btn';
       btn.dataset.id = s.id;
       const left = document.createElement('div'); left.className='left';
-      const playIc = document.createElement('div'); playIc.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="#ffffff" d="M8 5v14l11-7z"/></svg>';
-      left.appendChild(playIc);
+      const icon = document.createElement('img');
+      icon.src = s.icon;
+      icon.alt = s.name;
+      icon.style.width = '40px';
+      icon.style.height = '40px';
+      left.appendChild(icon);
       btn.appendChild(left);
       const chip = document.createElement('div'); chip.className='chip'; chip.innerHTML='&nbsp;';
       btn.appendChild(chip);
