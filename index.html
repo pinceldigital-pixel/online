@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Radio Dial</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#111111">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    
+    <style>
+        /* (El CSS queda exactamente igual que antes) */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        :root {
+            --bg-color: #111111;
+            --text-color: #ffffff;
+            --text-secondary: #aaaaaa;
+            --accent-red: #ff3b3b;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            max-width: 400px;
+            height: 100vh;
+            margin: auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        .radio-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            flex-grow: 1;
+        }
+        .header {
+            margin-bottom: 40px; 
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+        .on-air-status {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        .on-air-dot {
+            width: 14px;
+            height: 14px;
+            background-color: var(--text-secondary);
+            border-radius: 50%;
+        }
+        .on-air-dot.pulsing {
+            background-color: var(--accent-red);
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+        .on-air-text {
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: var(--text-secondary);
+            letter-spacing: 1px;
+            transition: color 0.3s;
+        }
+        .on-air-text.playing { color: var(--accent-red); }
+        .timer-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+        }
+        .timer-btn svg {
+            width: 28px;
+            height: 28px;
+            stroke: var(--text-secondary);
+            transition: all 0.2s ease;
+        }
+        .timer-btn.active svg {
+            stroke: var(--accent-red);
+            fill: var(--accent-red);
+        }
+        
+        .station-info { margin-bottom: 30px; }
+        #station-name {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-color);
+            margin: 0;
+            text-transform: uppercase;
+        }
+        #station-frequency {
+            font-size: 6rem;
+            font-weight: 900;
+            color: var(--text-secondary);
+            margin: 0;
+            line-height: 1.1;
+        }
+        #station-frequency .mhz {
+            font-size: 1.5rem;
+            font-weight: 400;
+            color: var(--text-secondary);
+            margin-left: 5px;
+        }
+        
+        #now-playing-title {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-top: 10px;
+            height: 20px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .tuner {
+            position: relative;
+            height: 70px;
+            width: 100%;
+            margin-bottom: 40px;
+            overflow: hidden;
+        }
+        .tuner-scale {
+            position: relative;
+            width: 100%;
+            height: 50px;
+            background-image: repeating-linear-gradient(to right, var(--text-secondary) 1px, transparent 1px, transparent 1.11%);
+            background-size: 100% 50%;
+            background-repeat: repeat-x;
+            background-position: center 100%;
+            opacity: 0.3;
+        }
+        .tuner-mark {
+            position: absolute;
+            bottom: 0;
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: center;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            transform: translateX(-50%);
+        }
+        .tuner-mark::before {
+            content: '';
+            width: 2px;
+            height: 25px;
+            background-color: var(--text-color);
+            margin-top: 4px;
+            opacity: 0.7;
+        }
+        .tuner-indicator {
+            position: absolute;
+            width: 3px;
+            height: 70px;
+            background-color: var(--accent-red);
+            box-shadow: 0 0 8px var(--accent-red);
+            border-radius: 2px;
+            z-index: 10;
+            left: 10%; 
+            transition: left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            width: 100%;
