@@ -11,13 +11,13 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     
     <style>
+        /* (El CSS se mantiene igual que la versión anterior) */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         :root {
             --bg-color: #111111;
             --text-color: #ffffff;
             --text-secondary: #aaaaaa;
             --accent-red: #ff3b3b; 
-            /* Agregamos el color por defecto para el visualizador */
             --visualizer-color: var(--accent-red); 
         }
         body {
@@ -68,7 +68,7 @@
             transform: translateY(-2px);
         }
         .on-air-dot.pulsing {
-            background-color: var(--accent-red);
+            background-color: var(--accent-red); /* Usamos accent-red como base */
             animation: pulse 1.5s infinite ease-in-out;
         }
         .on-air-text {
@@ -79,7 +79,7 @@
             letter-spacing: 1px;
             transition: color 0.3s;
         }
-        .on-air-text.playing { color: var(--accent-red); }
+        .on-air-text.playing { color: var(--accent-red); } /* Usamos accent-red como base */
         .timer-btn {
             background: none;
             border: none;
@@ -93,8 +93,8 @@
             transition: all 0.2s ease;
         }
         .timer-btn.active svg {
-            stroke: var(--accent-red);
-            fill: var(--accent-red);
+            stroke: var(--accent-red); /* Usamos accent-red como base */
+            fill: var(--accent-red); /* Usamos accent-red como base */
         }
         
         .station-info { margin-bottom: 0px; }
@@ -170,29 +170,28 @@
             position: absolute;
             width: 3px;
             height: 70px;
-            background-color: var(--accent-red);
-            box-shadow: 0 0 8px var(--accent-red);
+            /* Usamos la variable --needle-color que cambia con la estación */
+            background-color: var(--needle-color, var(--accent-red)); 
+            box-shadow: 0 0 8px var(--needle-color, var(--accent-red));
             border-radius: 2px;
             z-index: 10;
             left: 10%; 
-            transition: left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: left 0.5s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.5s ease, box-shadow 0.5s ease; /* Agregamos transición de color */
         }
 
-        /* --- NUEVO: CSS del Visualizador Canvas --- */
         .visualizer-container {
             width: 100%;
-            height: 80px; /* Ajustamos altura */
+            height: 80px; 
             display: flex;
             justify-content: center;
             align-items: center;
-            margin: 10px auto 20px; /* Ajustamos márgenes */
+            margin: 10px auto 20px; 
             opacity: 0.8;
         }
         #visualizer {
             width: 90%;
             height: 100%;
         }
-        /* --- FIN CSS NUEVO --- */
 
         .controls {
             display: flex;
@@ -223,19 +222,20 @@
         }
         #play-pause-btn:active {
             background-color: transparent; 
-            color: var(--accent-red); 
-            border-color: var(--accent-red); 
+            color: var(--accent-red); /* Usamos accent-red como base */ 
+            border-color: var(--accent-red); /* Usamos accent-red como base */
         }
         
         #audio-player { display: none; }
         @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(255, 59, 59, 0.7); }
-            70% { box-shadow: 0 0 0 12px rgba(255, 59, 59, 0); }
+            0% { box-shadow: 0 0 0 0 var(--accent-color, var(--accent-red)); } /* Usamos accent-color que cambia */
+            70% { box-shadow: 0 0 0 12px rgba(255, 59, 59, 0); } /* El alpha debe ser 0 al final */
             100% { box-shadow: 0 0 0 0 rgba(255, 59, 59, 0); }
         }
     </style>
 </head>
 <body>
+    
     <audio id="audio-player" preload="none" crossorigin="anonymous"></audio> 
     
     <div class="radio-container">
@@ -268,10 +268,12 @@
         <div class="visualizer-container">
             <canvas id="visualizer"></canvas>
         </div>
-        </div> 
+
+    </div> 
 
     <footer class="controls">
         <button class="control-btn" id="prev-btn"><i class="fa-solid fa-backward-step"></i></button>
+        {/* CORRECCIÓN: El ícono necesita el ID correcto */}
         <button class="control-btn" id="play-pause-btn"><i class="fa-solid fa-play" id="play-pause-icon"></i></button>
         <button class="control-btn" id="next-btn"><i class="fa-solid fa-forward-step"></i></button>
     </footer>
@@ -279,7 +281,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js') // Asegúrate que el nombre sea sw.js
+                navigator.serviceWorker.register('sw.js') 
                     .then(reg => console.log('Service Worker registrado.', reg))
                     .catch(err => console.error('Error al registrar Service Worker:', err));
             });
@@ -293,9 +295,7 @@
             { name: "Aspen", freq: "102.3", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/ASPEN.mp3" },
             { name: "LN+", freq: "104.9", url: "https://stream.radio.co/s2ed3bec0a/listen" }
         ];
-        // --- NUEVO: Colores para el visualizador ---
         const visualizerColors = ['#ff4136', '#36a2eb', '#4bc0c0', '#ffce56', '#9966ff', '#ff9f40'];
-
 
         const MIN_FREQ = 97.0;
         const MAX_FREQ = 106.0;
@@ -303,14 +303,13 @@
         let currentStationIndex = 0;
         let isPlaying = false;
         let sleepTimer = null;
-        // --- NUEVO: Variables para Web Audio API ---
         let audioContext, analyser, source, dataArray, bufferLength;
         let animationFrameId = null;
 
         const audioPlayer = document.getElementById('audio-player');
         const playPauseBtn = document.getElementById('play-pause-btn');
-        const playPauseIcon = document.getElementById('play-pause-icon');
-        const pauseIcon = document.getElementById('pause-icon'); // Necesitamos el pause icon del otro HTML
+        // CORRECCIÓN: Obtenemos el ícono por su ID
+        const playPauseIcon = document.getElementById('play-pause-icon'); 
         const nextBtn = document.getElementById('next-btn');
         const prevBtn = document.getElementById('prev-btn');
         const stationNameEl = document.getElementById('station-name');
@@ -321,23 +320,21 @@
         const sleepTimerBtn = document.getElementById('sleep-timer-btn');
         const tunerScale = document.getElementById('tuner-scale');
         const tunerIndicator = document.getElementById('tuner-indicator');
-        // --- NUEVO: Variables del Canvas ---
         const canvas = document.getElementById('visualizer');
         const canvasCtx = canvas.getContext('2d');
 
         function loadStation(index) {
+            console.log("Cargando estación:", index); // Log para depuración
             const station = stations[index];
             stationNameEl.textContent = station.name;
             audioPlayer.src = station.url;
             
-            // --- NUEVO: Cambiar color del visualizador ---
             const newColor = visualizerColors[index % visualizerColors.length];
             document.documentElement.style.setProperty('--visualizer-color', newColor);
-            // También cambiamos el color 'accent' y 'needle' como en tu otro código
             document.documentElement.style.setProperty('--accent-color', newColor); 
             document.documentElement.style.setProperty('--needle-color', newColor);
 
-            updateMediaSession(); // Llamada movida aquí para asegurar metadata base
+            updateMediaSession(); 
             
             const freq = parseFloat(station.freq);
             
@@ -352,50 +349,139 @@
                 tunerIndicator.style.left = '0%'; 
             }
             
-            // Si estaba sonando, que siga sonando y actualice visualizador
+            // Si estaba sonando, intentamos seguir reproduciendo
             if (isPlaying) {
-                // Pequeño delay para asegurar que el nuevo source se cargue antes de conectar
-                setTimeout(playAudio, 100); 
+                 // Reiniciamos el source de audio si ya existe, ya que la URL cambió
+                if (source) {
+                    source.disconnect(); // Desconectamos el viejo
+                    // Esperamos un poco antes de volver a conectar y reproducir
+                    setTimeout(() => {
+                        // Creamos un nuevo source para el nuevo audioPlayer.src
+                        // Esto a veces es necesario si createMediaElementSource ya se llamó antes
+                        try {
+                           source = audioContext.createMediaElementSource(audioPlayer);
+                           source.connect(analyser);
+                           // No necesitamos conectar analyser a destination de nuevo si ya estaba
+                           playAudio(); // Ahora sí, reproducimos
+                        } catch(e) {
+                             console.error("Error al recrear source:", e);
+                             // Si falla, intentamos simplemente reproducir
+                             playAudio();
+                        }
+                    }, 150); // Un delay pequeño
+                } else {
+                    // Si no había source (primera carga), simplemente reproducimos
+                    playAudio();
+                }
             } else {
-                 cancelAnimationFrame(animationFrameId); // Detener visualizador si no suena
-                 clearCanvas(); // Limpiar canvas si no suena
+                 cancelAnimationFrame(animationFrameId); 
+                 clearCanvas(); 
             }
         }
         
-        // --- NUEVO: Función para limpiar el canvas ---
         function clearCanvas() {
             if(canvasCtx && canvas) {
-                canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+                // Multiplicamos por devicePixelRatio para limpiar correctamente en pantallas HiDPI
+                canvasCtx.clearRect(0, 0, canvas.width / (window.devicePixelRatio||1), canvas.height / (window.devicePixelRatio||1));
             }
         }
 
-        // --- MODIFICADO: playAudio para manejar AudioContext ---
+        // --- CORRECCIÓN: setupAudioContext más robusto ---
+        function setupAudioContext() {
+            console.log("Intentando configurar AudioContext...");
+            try {
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    analyser = audioContext.createAnalyser();
+                    analyser.fftSize = 512; 
+                    bufferLength = analyser.frequencyBinCount;
+                    dataArray = new Uint8Array(bufferLength);
+                    analyser.connect(audioContext.destination); // Conectamos analyser al final
+                    console.log("AudioContext y Analyser creados.");
+                }
+
+                // Intentamos crear o reconectar el source SIEMPRE que se llame, por si cambia el audio element
+                // Pero SOLO si el contexto está 'running'
+                 if (audioContext.state === 'running') {
+                    if (source) {
+                         source.disconnect(); // Desconectamos el viejo por si acaso
+                    }
+                     // Creamos el source desde el audio element actual
+                    source = audioContext.createMediaElementSource(audioPlayer); 
+                    source.connect(analyser); // Conectamos source -> analyser
+                    console.log("MediaElementSource conectado.");
+                 } else {
+                      console.warn("AudioContext no está 'running'. Source no conectado aún.");
+                 }
+                
+                return true; // Éxito (aunque el source pueda conectarse después)
+            } catch (e) {
+                console.error("Web Audio API falló:", e);
+                alert("Error al inicializar el audio. Intenta recargar.");
+                return false; 
+            }
+        }
+        
+        
         function playAudio() {
-            // Inicializar AudioContext si no existe (importante: debe ser por interacción del usuario)
-            if (!audioContext) {
-                 if (!setupAudioContext()) return; // Si falla, no continuamos
+            console.log("playAudio llamado.");
+             // Si el contexto está suspendido (autoplay bloqueado), intentamos resumirlo
+            if (audioContext && audioContext.state === 'suspended') {
+                audioContext.resume().then(() => {
+                    console.log("AudioContext resumido.");
+                    // Asegurarse de que el source esté conectado después de resumir
+                    if (!source || !source.mediaElement) { // Si no hay source o está desconectado
+                        if(!setupAudioContext()) return; // Reintentar conectar
+                    }
+                    // Ahora sí, reproducir
+                    audioPlayer.play().then(() => {
+                        console.log("Reproducción iniciada tras resume.");
+                        isPlaying = true;
+                        updatePlayPauseUI(true);
+                        draw(); 
+                    }).catch(handlePlayError);
+                }).catch(e => console.error("Error al resumir AudioContext:", e));
+            } 
+            // Si el contexto ya está corriendo o no existe aún (se creará con setupAudioContext)
+            else {
+                // Si no hay contexto, configurarlo ahora (importante que sea por interacción)
+                if (!audioContext) {
+                    if (!setupAudioContext()) return; 
+                }
+                
+                // Asegurarse de que el source esté conectado (puede fallar si el contexto no está 'running' aún)
+                if (audioContext.state === 'running' && (!source || !source.mediaElement)) {
+                     if (!setupAudioContext()) return; // Intentar (re)conectar source
+                }
+
+                // Finalmente, intentar reproducir
+                audioPlayer.play().then(() => {
+                    console.log("Reproducción iniciada.");
+                    isPlaying = true;
+                    updatePlayPauseUI(true);
+                    draw(); 
+                }).catch(handlePlayError);
             }
-            
-            audioPlayer.play().then(() => {
-                isPlaying = true;
-                updatePlayPauseUI(true);
-                // --- INICIAR VISUALIZADOR ---
-                draw(); 
-            }).catch(error => {
-                console.error("Error al reproducir:", error);
-                // Si falla (ej. autoplay bloqueado), aseguramos estado de pausa
-                pauseAudio(); 
-            });
+        }
+        
+        // Función separada para manejar errores de play()
+        function handlePlayError(error) {
+             console.error("Error al llamar a audioPlayer.play():", error);
+             // Podría ser autoplay bloqueado, error de red, etc.
+             // Aseguramos que la UI refleje el estado de pausa.
+             pauseAudio(); 
+             // Opcional: Mostrar un mensaje al usuario
+             // alert("No se pudo iniciar la reproducción. ¿El navegador bloqueó el autoplay?");
         }
 
-        // --- MODIFICADO: pauseAudio para detener visualizador ---
+
         function pauseAudio() {
+             console.log("pauseAudio llamado.");
             audioPlayer.pause();
             isPlaying = false;
             updatePlayPauseUI(false);
-            // --- DETENER VISUALIZADOR ---
             cancelAnimationFrame(animationFrameId);
-            clearCanvas(); // Limpiar al pausar
+            clearCanvas(); 
 
             if (sleepTimer) {
                 clearTimeout(sleepTimer);
@@ -404,104 +490,80 @@
             }
         }
 
-        // --- MODIFICADO: togglePlayPause para inicializar AudioContext ---
+        // CORRECCIÓN: togglePlayPause simplificado
         function togglePlayPause() {
-            // Intenta inicializar el AudioContext en el primer click si no existe
-            if (!audioContext) {
-                if (!setupAudioContext()) {
-                    alert("Error al inicializar el audio. Intenta recargar la página.");
-                    return; 
-                }
+            console.log("togglePlayPause llamado.");
+             // Siempre intentar configurar/resumir el contexto al hacer clic
+            if (!setupAudioContext()) { 
+                console.error("Fallo crítico al configurar AudioContext en togglePlayPause.");
+                return; // No continuar si falla
             }
-            
-            // Ahora sí, alterna play/pause
+
+            // Ahora sí, alternar
             if (isPlaying) {
                 pauseAudio();
             } else {
-                playAudio();
-            }
-        }
-
-
-        // --- NUEVO: setupAudioContext (combinado del otro archivo) ---
-        function setupAudioContext() {
-            try {
-                // Resume el contexto si ya existe pero está suspendido (política de autoplay)
-                if (audioContext && audioContext.state === 'suspended') {
-                    audioContext.resume();
-                }
-                
-                // Si no existe, lo crea
-                if (!audioContext) {
-                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    analyser = audioContext.createAnalyser();
-                    // Importante: Crear el source DESPUÉS de que el usuario interactúe
-                    if (!source) { 
-                        source = audioContext.createMediaElementSource(audioPlayer);
-                        source.connect(analyser);
-                        analyser.connect(audioContext.destination);
-                    } else { // Si ya existe el source, reconectar por si acaso
-                        source.disconnect();
-                        source.connect(analyser);
-                        analyser.connect(audioContext.destination);
-                    }
-                    analyser.fftSize = 512; // Un tamaño más pequeño puede ser más reactivo
-                    bufferLength = analyser.frequencyBinCount;
-                    dataArray = new Uint8Array(bufferLength);
-                }
-                return true; // Éxito
-            } catch (e) {
-                console.error("Web Audio API no es soportada o falló la inicialización", e);
-                alert("Tu navegador no soporta la API de Audio necesaria para el visualizador.");
-                return false; // Fallo
+                 // Antes de llamar a playAudio, aseguramos que el contexto esté corriendo
+                 if(audioContext.state === 'suspended') {
+                     audioContext.resume().then(playAudio).catch(e => console.error("Error al resumir en toggle:", e));
+                 } else {
+                     playAudio();
+                 }
             }
         }
         
-        // --- NUEVO: setupCanvas ---
         function setupCanvas() {
-            const dpr = window.devicePixelRatio || 1;
-            const rect = canvas.getBoundingClientRect();
-            canvas.width = rect.width * dpr;
-            canvas.height = rect.height * dpr;
-            canvasCtx.scale(dpr, dpr);
+            try {
+                const dpr = window.devicePixelRatio || 1;
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width * dpr;
+                canvas.height = rect.height * dpr;
+                // Escalamos el contexto solo una vez aquí
+                canvasCtx.scale(dpr, dpr); 
+                console.log("Canvas configurado:", canvas.width, canvas.height, "DPR:", dpr);
+            } catch (e) {
+                console.error("Error al configurar canvas:", e);
+            }
         }
 
-        // --- NUEVO: draw loop ---
         function draw() {
-            animationFrameId = requestAnimationFrame(draw); // Llama a draw en el siguiente frame
+            animationFrameId = requestAnimationFrame(draw); 
             
-            if (!analyser || !isPlaying) {
+            if (!analyser || !isPlaying || !dataArray) {
                  clearCanvas();
-                 return; // No dibujar si no hay analyser o no está sonando
+                 return; 
             }
             
-            // Usamos getByteFrequencyData para barras que suben con la "fuerza" de la música
             analyser.getByteFrequencyData(dataArray); 
 
-            const width = canvas.clientWidth;
-            const height = canvas.clientHeight;
-            canvasCtx.clearRect(0, 0, width, height);
+            // Usamos clientWidth/Height para obtener tamaño CSS (no afectado por dpr)
+            const width = canvas.clientWidth; 
+            const height = canvas.clientHeight; 
+            // Limpiamos usando el tamaño CSS ya que el contexto está escalado
+            canvasCtx.clearRect(0, 0, width, height); 
 
-            const numBars = 32; // Menos barras pueden verse mejor
+            const numBars = 32; 
             const barWidth = width / numBars;
             
-            // Usamos la variable CSS para el color
             canvasCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--visualizer-color'); 
             
             for (let i = 0; i < numBars; i++) {
-                // dataArray[i] va de 0 a 255. Lo normalizamos (dividimos por 255)
-                // y lo multiplicamos por la altura para escalar.
-                const barHeight = (dataArray[i] / 255) * height;
+                // Mapeamos el índice i a un índice dentro de dataArray (bufferLength)
+                // Usamos una escala logarítmica (aproximada) para dar más peso a las bajas frecuencias
+                const dataIndex = Math.floor(Math.pow(i / numBars, 2) * (bufferLength * 0.8)); // Tomamos el 80% del buffer
+                const barHeight = (dataArray[dataIndex] / 255) * height;
 
                 const x = i * barWidth;
-                const barGap = barWidth * 0.2; // 20% de espacio
+                const barGap = barWidth * 0.2; 
                 const barTrueWidth = barWidth - barGap;
 
-                // Dibujamos la barra desde abajo
-                canvasCtx.fillRect(x + (barGap / 2), height - barHeight, barTrueWidth, barHeight);
+                // Dibujar barras desde abajo
+                // Evitamos alturas negativas o cero para que siempre se vea algo mínimo
+                const minHeight = 1; 
+                const h = Math.max(minHeight, barHeight);
+                canvasCtx.fillRect(x + (barGap / 2), height - h, barTrueWidth, h);
             }
         }
-
 
         function nextStation() {
             currentStationIndex = (currentStationIndex + 1) % stations.length;
@@ -522,114 +584,113 @@
                 sleepTimerBtn.classList.add('active');
                 const thirtyMinutes = 30 * 60 * 1000;
                 sleepTimer = setTimeout(() => {
-                    pauseAudio(); // Llama a pauseAudio que ya limpia el timer y el botón
+                    pauseAudio(); 
                 }, thirtyMinutes);
             }
         }
         
-        // --- MODIFICADO: updatePlayPauseUI ---
+        // --- CORRECCIÓN: updatePlayPauseUI ---
         function updatePlayPauseUI(playing) {
-            isPlaying = playing;
-            // Aquí referenciamos los íconos de FontAwesome por su ID
-            const playIconFA = playPauseBtn.querySelector('#play-pause-icon.fa-play');
-            const pauseIconFA = playPauseBtn.querySelector('#play-pause-icon.fa-pause');
+            isPlaying = playing; // Actualizar estado global
             
+            // Cambiar el ícono Play/Pause usando classList
             if (playing) {
-                if (playIconFA) playIconFA.classList.replace('fa-play', 'fa-pause');
+                playPauseIcon.classList.remove('fa-play');
+                playPauseIcon.classList.add('fa-pause');
             } else {
-                if (pauseIconFA) pauseIconFA.classList.replace('fa-pause', 'fa-play');
+                playPauseIcon.classList.remove('fa-pause');
+                playPauseIcon.classList.add('fa-play');
             }
             
-            onAirText.textContent = isPlaying ? 'ON AIR' : 'OFF AIR';
-            onAirDot.classList.toggle('pulsing', isPlaying); // Usamos pulsing en lugar de playing para el punto
+            // Actualizar texto y punto ON/OFF AIR
+            onAirText.textContent = playing ? 'ON AIR' : 'OFF AIR';
+            onAirText.classList.toggle('playing', playing); // Clase para el color del texto
+            onAirDot.classList.toggle('pulsing', playing); // Clase para la animación del punto
+            
+            // Actualizar estado para el sistema operativo (notificaciones)
             if ('mediaSession' in navigator) {
-                navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+                navigator.mediaSession.playbackState = playing ? 'playing' : 'paused';
             }
+            console.log("UI actualizada a estado:", playing ? "Playing" : "Paused");
         }
         
         
         function updateMediaSession(trackTitle = null) {
+             console.log("Actualizando MediaSession...");
             if ('mediaSession' in navigator) {
                 const station = stations[currentStationIndex];
-                navigator.mediaSession.metadata = new MediaMetadata({
-                    title: trackTitle || station.name, 
-                    artist: station.freq,
-                    album: 'Radio Dial PWA', // Nombre más descriptivo
-                    artwork: [ // Asegúrate que estos archivos existan
-                        { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
-                        { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
-                    ]
-                });
+                try {
+                    navigator.mediaSession.metadata = new MediaMetadata({
+                        title: trackTitle || station.name, 
+                        artist: station.freq,
+                        album: 'Radio Dial PWA', 
+                        artwork: [ 
+                            { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
+                            { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
+                        ]
+                    });
+                     console.log("Metadata de MediaSession actualizada:", navigator.mediaSession.metadata);
+                } catch(e) {
+                     console.error("Error al actualizar metadata de MediaSession:", e);
+                }
             }
         }
         
-        // --- MODIFICADO: Lógica para obtener metadatos (más robusta) ---
-         function getNowPlayingMetadata() {
-            // Limpiar título anterior
+        function getNowPlayingMetadata() {
+             console.log("Intentando obtener metadatos...");
             nowPlayingTitle.textContent = ''; 
             
-            // Intenta obtener metadatos de Media Session API primero
             if ('mediaSession' in navigator && navigator.mediaSession.metadata) {
                  const metadata = navigator.mediaSession.metadata;
-                 // Comprobamos si el título es diferente al nombre de la estación
+                 console.log("Metadata actual:", metadata);
                  if (metadata.title && metadata.title !== stations[currentStationIndex].name) {
                      nowPlayingTitle.textContent = metadata.title;
-                     // Actualizamos también la notificación
+                     console.log("Título encontrado en metadata.title:", metadata.title);
                      updateMediaSession(metadata.title); 
-                     return; // Salimos si ya obtuvimos el título
+                     return; 
                  }
-                  // A veces lo ponen en artist
                  if (metadata.artist && metadata.artist !== 'Radio en Vivo' && metadata.artist !== stations[currentStationIndex].freq) {
                      nowPlayingTitle.textContent = metadata.artist;
+                      console.log("Título encontrado en metadata.artist:", metadata.artist);
                      updateMediaSession(metadata.artist); 
                      return;
                  }
+            } else {
+                 console.log("MediaSession API no disponible o sin metadata inicial.");
             }
              
-            // Como fallback, podemos intentar escuchar eventos 'metadata' del audio element
-            // (Esto es menos fiable y depende del stream)
-            audioPlayer.removeEventListener('loadedmetadata', handleAudioMetadata); // Quitar listener viejo si existe
-            audioPlayer.addEventListener('loadedmetadata', handleAudioMetadata);
+            // Fallback (menos fiable)
+            // audioPlayer.removeEventListener('loadedmetadata', handleAudioMetadata); 
+            // audioPlayer.addEventListener('loadedmetadata', handleAudioMetadata);
         }
 
         function handleAudioMetadata() {
-            // Lógica para intentar leer metadatos directamente del stream si MediaSession no funcionó
-            // Esta parte es compleja y no siempre funciona. Por ahora la dejamos simple.
-             console.log("Evento loadedmetadata disparado.");
-             // Aquí podrías intentar acceder a audioPlayer.textTracks si el stream los envía.
+             console.log("Evento loadedmetadata.");
         }
-
-        // --- Fin Modificación Metadatos ---
-
 
         // --- Event Listeners ---
         playPauseBtn.addEventListener('click', togglePlayPause);
         nextBtn.addEventListener('click', () => changeStation(1));
         prevBtn.addEventListener('click', () => changeStation(-1));
         sleepTimerBtn.addEventListener('click', toggleSleepTimer);
-        // Eventos del audioPlayer para UI y metadatos
-        audioPlayer.addEventListener('play', () => {
-            updatePlayPauseUI(true);
-            // Intentar obtener metadatos cuando empieza a sonar
-            setTimeout(getNowPlayingMetadata, 1000); // Darle un segundo
-        });
-        audioPlayer.addEventListener('pause', () => updatePlayPauseUI(false));
-        audioPlayer.addEventListener('ended', () => updatePlayPauseUI(false));
-        window.addEventListener('resize', setupCanvas); // Reajustar canvas si cambia tamaño ventana
+        // Quitar listeners duplicados de play/pause/ended aquí, ya se manejan en las funciones
+        window.addEventListener('resize', setupCanvas); 
 
-        // --- Media Session Handlers ---
+        // --- Media Session Handlers (Correcto) ---
         if ('mediaSession' in navigator) {
-            navigator.mediaSession.setActionHandler('play', playAudio); // Llama a nuestra función playAudio
-            navigator.mediaSession.setActionHandler('pause', pauseAudio); // Llama a nuestra función pauseAudio
+            navigator.mediaSession.setActionHandler('play', playAudio); 
+            navigator.mediaSession.setActionHandler('pause', pauseAudio); 
             navigator.mediaSession.setActionHandler('previoustrack', () => changeStation(-1));
             navigator.mediaSession.setActionHandler('nexttrack', () => changeStation(1));
         }
 
         // --- Inicialización ---
-        setupCanvas(); // Configurar tamaño inicial del canvas
-        initTuner(); // Dibujar el dial
-        loadStation(currentStationIndex); // Cargar la primera estación
-        // NO llamamos a playAudio() aquí para el autoplay, dejamos que el usuario inicie.
+        setupCanvas(); 
+        initTuner(); 
+        loadStation(currentStationIndex); 
+        // NO llamamos a playAudio() para autoplay
+        
+        console.log("Aplicación inicializada."); // Log final
         
     </script>
 </body>

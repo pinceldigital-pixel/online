@@ -31,7 +31,6 @@ self.addEventListener('install', event => {
 
 // Evento 'fetch': Estrategia Cache First, luego Network
 self.addEventListener('fetch', event => {
-  // Ignorar peticiones que no sean GET (ej. POST)
   if (event.request.method !== 'GET') {
     return;
   }
@@ -39,23 +38,16 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // Si está en caché, lo devuelve del caché
         if (response) {
           return response;
         }
         
-        // Si no, va a la red a buscarlo
         return fetch(event.request).then(
           networkResponse => {
-            // Opcional: Podrías guardar la respuesta en caché aquí si quisieras
-            // cache.put(event.request, networkResponse.clone());
             return networkResponse;
           }
         ).catch(error => {
-          // Manejo de error si falla la red (ej. offline)
-          console.error('Fetch fallido; devolviendo offline page o nada.', error);
-          // Podrías devolver una página offline básica aquí si la tuvieras cacheada
-          // return caches.match('/offline.html'); 
+          console.error('Fetch fallido:', error);
         });
       }
     )
@@ -76,7 +68,6 @@ self.addEventListener('activate', event => {
         })
       );
     }).then(() => {
-        // Tomar control de las páginas abiertas inmediatamente
         return self.clients.claim(); 
     })
   );
