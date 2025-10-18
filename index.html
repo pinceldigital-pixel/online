@@ -23,7 +23,7 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
-            padding: 12px 20px 20px; /* Mantenemos el padding superior que te gustó */
+            padding: 12px 20px 20px;
             max-width: 400px;
             height: 100vh;
             margin: auto;
@@ -32,18 +32,16 @@
             justify-content: space-between;
             box-sizing: border-box;
             text-align: center;
-            overflow: hidden; 
         }
         .radio-container {
             display: flex;
             flex-direction: column;
-            justify-content: flex-start; /* Alineado arriba */
+            justify-content: flex-start;
             align-items: center;
             flex-grow: 1;
-            width: 100%; 
         }
         .header { 
-            margin-bottom: 48px; /* Margen que te gustó */
+            margin-bottom: 48px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -63,7 +61,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transform: translateY(-2px); /* Mantenemos tu ajuste */
+            transform: translateY(-2px);
         }
         .on-air-dot.pulsing {
             background-color: var(--accent-red);
@@ -122,7 +120,7 @@
             font-weight: 500;
             color: var(--text-secondary);
             margin-top: 5px;
-            margin-bottom: 25px; 
+            margin-bottom: 25px;
             height: 20px;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -133,8 +131,7 @@
             position: relative;
             height: 70px;
             width: 100%;
-            /* Ajustamos margen inferior para compensar la falta de visualizador */
-            margin-bottom: 80px; 
+            margin-bottom: 40px;
             overflow: hidden;
         }
         .tuner-scale {
@@ -169,20 +166,20 @@
             position: absolute;
             width: 3px;
             height: 70px;
-            background-color: var(--accent-red); 
+            background-color: var(--accent-red);
             box-shadow: 0 0 8px var(--accent-red);
             border-radius: 2px;
             z-index: 10;
             left: 10%; 
             transition: left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
-
-        /* Quitamos el CSS del visualizador canvas */
-
+        
+        /* --- CAMBIO 1: Distribuimos los controles --- */
         .controls {
             display: flex;
-            justify-content: space-between; /* Corregido */
+            justify-content: space-between; /* <- CORRECCIÓN: space-between */
             align-items: center;
+            /* gap: 30px; (Ya no es necesario) */
             width: 100%;
             padding: 20px 0;
         }
@@ -202,7 +199,8 @@
             border-radius: 50%;
             font-size: 2rem;
             display: flex;
-            justify-content: center; /* Corregido */
+            /* --- CAMBIO 2: Centramos el ícono (||) --- */
+            justify-content: center; /* <- CORRECCIÓN: center */
             align-items: center;
             transition: color 0.1s, border-color 0.1s; 
         }
@@ -214,16 +212,15 @@
         
         #audio-player { display: none; }
         @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 var(--accent-red); } 
-            70% { box-shadow: 0 0 0 12px rgba(255, 59, 59, 0); } 
+            0% { box-shadow: 0 0 0 0 rgba(255, 59, 59, 0.7); }
+            70% { box-shadow: 0 0 0 12px rgba(255, 59, 59, 0); }
             100% { box-shadow: 0 0 0 0 rgba(255, 59, 59, 0); }
         }
     </style>
 </head>
 <body>
-    
-    <audio id="audio-player" preload="none" crossorigin="anonymous"></audio> 
-    
+
+    <audio id="audio-player" preload="none"></audio>
     <div class="radio-container">
         
         <header class="header">
@@ -240,7 +237,7 @@
         </header>
 
         <main class="station-info">
-            <h2 id="station-name">Awesome 80s</h2>
+            <h2 id="station-name">Club 80s</h2>
             <h1 id="station-frequency">80s</h1> 
         </main>
         
@@ -250,10 +247,7 @@
             <div class="tuner-indicator" id="tuner-indicator"></div>
             <div class="tuner-scale" id="tuner-scale"></div>
         </div>
-
-        {/* Quitamos el HTML del visualizador canvas */}
-
-    </div> 
+    </div>
 
     <footer class="controls">
         <button class="control-btn" id="prev-btn"><i class="fa-solid fa-backward-step"></i></button>
@@ -262,24 +256,23 @@
     </footer>
 
     <script>
-        // --- Volvemos al JavaScript simple, SIN Web Audio API ---
+        // (El JavaScript no necesita ningún cambio)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js') 
+                navigator.serviceWorker.register('sw.js')
                     .then(reg => console.log('Service Worker registrado.', reg))
                     .catch(err => console.error('Error al registrar Service Worker:', err));
             });
         }
     
         const stations = [
-            { name: "Awesome 80s", freq: "80s", url: "http://listen.181fm.com/181-awesome80s_128k.mp3" },
+            { name: "Club 80s", freq: "80s", url: "https://stream.radioclub80.cl:8002/clasicos80.mp3" },
             { name: "Power 90s", freq: "90s", url: "https://live.powerhitz.com/90sarea" },
             { name: "2000s Hits", freq: "00s", url: "https://streaming.live365.com/a48930" },
             { name: "Blue", freq: "100.7", url: "https://27693.live.streamtheworld.com/BLUE_FM_100_7AAC.aac" },
             { name: "Aspen", freq: "102.3", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/ASPEN.mp3" },
             { name: "LN+", freq: "104.9", url: "https://stream.radio.co/s2ed3bec0a/listen" }
         ];
-        // Quitamos visualizerColors
 
         const MIN_FREQ = 97.0;
         const MAX_FREQ = 106.0;
@@ -287,11 +280,10 @@
         let currentStationIndex = 0;
         let isPlaying = false;
         let sleepTimer = null;
-        // Quitamos variables de AudioContext, analyser, etc.
 
         const audioPlayer = document.getElementById('audio-player');
         const playPauseBtn = document.getElementById('play-pause-btn');
-        const playPauseIcon = document.getElementById('play-pause-icon'); 
+        const playPauseIcon = document.getElementById('play-pause-icon');
         const nextBtn = document.getElementById('next-btn');
         const prevBtn = document.getElementById('prev-btn');
         const stationNameEl = document.getElementById('station-name');
@@ -302,18 +294,12 @@
         const sleepTimerBtn = document.getElementById('sleep-timer-btn');
         const tunerScale = document.getElementById('tuner-scale');
         const tunerIndicator = document.getElementById('tuner-indicator');
-        // Quitamos variables del canvas
 
         function loadStation(index) {
             const station = stations[index];
             stationNameEl.textContent = station.name;
             audioPlayer.src = station.url;
-            
-            // Quitamos lógica de cambiar color visualizer
-            document.documentElement.style.setProperty('--accent-color', 'var(--accent-red)'); // Volvemos al rojo base
-            document.documentElement.style.setProperty('--needle-color', 'var(--accent-red)'); // Volvemos al rojo base
-
-            updateMediaSession(); 
+            updateMediaSession(station);
             
             const freq = parseFloat(station.freq);
             
@@ -328,32 +314,33 @@
                 tunerIndicator.style.left = '0%'; 
             }
             
-            // Si estaba sonando, intentamos seguir reproduciendo
             if (isPlaying) {
-                 playAudio(); // Llamamos a play simple
-            } 
-            // Quitamos lógica de detener/limpiar visualizador
+                playAudio();
+            }
         }
-        
-        // Quitamos clearCanvas
 
         function playAudio() {
-            // Ya no necesitamos inicializar AudioContext
             audioPlayer.play().then(() => {
                 isPlaying = true;
-                updatePlayPauseUI(true);
-                // Quitamos inicio de visualizador
-            }).catch(error => {
-                console.error("Error al reproducir:", error);
-                pauseAudio(); // Asegurar estado de pausa si falla
-            });
+                playPauseIcon.classList.remove('fa-play');
+                playPauseIcon.classList.add('fa-pause');
+                onAirText.textContent = 'ON AIR';
+                onAirText.classList.add('playing');
+                onAirDot.classList.add('pulsing');
+                navigator.mediaSession.playbackState = 'playing';
+            }).catch(error => console.error("Error al reproducir (autoplay bloqueado por navegador?):", error));
         }
 
         function pauseAudio() {
             audioPlayer.pause();
             isPlaying = false;
-            updatePlayPauseUI(false);
-            // Quitamos detener/limpiar visualizador
+            playPauseIcon.classList.remove('fa-pause');
+            playPauseIcon.classList.add('fa-play');
+            onAirText.textContent = 'OFF AIR';
+            onAirText.classList.remove('playing');
+            onAirDot.classList.remove('pulsing');
+            navigator.mediaSession.playbackState = 'paused';
+            nowPlayingTitle.textContent = "";
 
             if (sleepTimer) {
                 clearTimeout(sleepTimer);
@@ -363,7 +350,6 @@
         }
 
         function togglePlayPause() {
-            // Ya no necesitamos manejar AudioContext aquí
             if (isPlaying) {
                 pauseAudio();
             } else {
@@ -371,8 +357,6 @@
             }
         }
 
-        // Quitamos setupAudioContext, setupCanvas, draw, drawVisualizer
-        
         function nextStation() {
             currentStationIndex = (currentStationIndex + 1) % stations.length;
             loadStation(currentStationIndex);
@@ -392,101 +376,74 @@
                 sleepTimerBtn.classList.add('active');
                 const thirtyMinutes = 30 * 60 * 1000;
                 sleepTimer = setTimeout(() => {
-                    pauseAudio(); 
+                    pauseAudio();
+                    sleepTimer = null;
+                    sleepTimerBtn.classList.remove('active');
                 }, thirtyMinutes);
             }
         }
         
-        function updatePlayPauseUI(playing) {
-            isPlaying = playing; 
-            
-            if (playing) {
-                playPauseIcon.classList.remove('fa-play');
-                playPauseIcon.classList.add('fa-pause');
-            } else {
-                playPauseIcon.classList.remove('fa-pause');
-                playPauseIcon.classList.add('fa-play');
-            }
-            
-            onAirText.textContent = playing ? 'ON AIR' : 'OFF AIR';
-            onAirText.classList.toggle('playing', playing); 
-            onAirDot.classList.toggle('pulsing', playing); 
-            
+        function updateMediaSession(station) {
             if ('mediaSession' in navigator) {
-                navigator.mediaSession.playbackState = playing ? 'playing' : 'paused';
-            }
-        }
-        
-        
-        function updateMediaSession(trackTitle = null) {
-            if ('mediaSession' in navigator) {
-                const station = stations[currentStationIndex];
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: station.name,
+                    artist: 'Radio en Vivo',
+                    album: station.freq, 
+                    artwork: [
+                        { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
+                        { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
+                    ]
+                });
                 try {
-                    navigator.mediaSession.metadata = new MediaMetadata({
-                        title: trackTitle || station.name, 
-                        artist: station.freq,
-                        album: 'Radio Dial PWA', 
-                        artwork: [ 
-                            { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
-                            { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
-                        ]
+                    navigator.mediaSession.addEventListener('metadata', () => {
+                        const metadata = navigator.mediaSession.metadata;
+                        if (metadata.title && metadata.title !== station.name) {
+                            nowPlayingTitle.textContent = metadata.title;
+                        } else if (metadata.artist && metadata.artist !== 'Radio enVivo') {
+                            nowPlayingTitle.textContent = metadata.artist;
+                        } else {
+                            nowPlayingTitle.textContent = "";
+                        }
                     });
-                } catch(e) {
-                     console.error("Error al actualizar metadata de MediaSession:", e);
-                }
+                } catch (e) { console.warn("Listener de metadata falló", e); }
             }
         }
         
-        function getNowPlayingMetadata() {
-            nowPlayingTitle.textContent = ''; 
-            
-            if ('mediaSession' in navigator && navigator.mediaSession.metadata) {
-                 const metadata = navigator.mediaSession.metadata;
-                 if (metadata.title && metadata.title !== stations[currentStationIndex].name) {
-                     nowPlayingTitle.textContent = metadata.title;
-                     updateMediaSession(metadata.title); 
-                     return; 
-                 }
-                 if (metadata.artist && metadata.artist !== 'Radio en Vivo' && metadata.artist !== stations[currentStationIndex].freq) {
-                     nowPlayingTitle.textContent = metadata.artist;
-                     updateMediaSession(metadata.artist); 
-                     return;
-                 }
-            }
-        }
-
-        function handleAudioMetadata() {
-             // Ya no es necesaria con el enfoque simple
-        }
-
-        // --- Event Listeners ---
-        playPauseBtn.addEventListener('click', togglePlayPause);
-        nextBtn.addEventListener('click', () => changeStation(1));
-        prevBtn.addEventListener('click', () => changeStation(-1));
-        sleepTimerBtn.addEventListener('click', toggleSleepTimer);
-        // Volvemos a los listeners simples del audioPlayer
-        audioPlayer.addEventListener('play', () => {
-             updatePlayPauseUI(true);
-             setTimeout(getNowPlayingMetadata, 1000); 
-        });
-        audioPlayer.addEventListener('pause', () => updatePlayPauseUI(false));
-        audioPlayer.addEventListener('ended', () => updatePlayPauseUI(false));
-        // Quitamos el listener de resize para el canvas
-
-        // --- Media Session Handlers (Correcto) ---
         if ('mediaSession' in navigator) {
-            navigator.mediaSession.setActionHandler('play', playAudio); 
-            navigator.mediaSession.setActionHandler('pause', pauseAudio); 
-            navigator.mediaSession.setActionHandler('previoustrack', () => changeStation(-1));
-            navigator.mediaSession.setActionHandler('nexttrack', () => changeStation(1));
+            navigator.mediaSession.setActionHandler('play', playAudio);
+            navigator.mediaSession.setActionHandler('pause', pauseAudio);
+            navigator.mediaSession.setActionHandler('previoustrack', prevStation);
+            navigator.mediaSession.setActionHandler('nexttrack', nextStation);
         }
 
-        // --- Inicialización ---
-        // Quitamos setupCanvas
-        initTuner(); 
+        function initTuner() {
+            tunerScale.innerHTML = '';
+            const freqSpan = MAX_FREQ - MIN_FREQ;
+
+            for (let freq = Math.floor(MIN_FREQ); freq <= Math.ceil(MAX_FREQ); freq++) {
+                const percentPosition = (freq - MIN_FREQ) / freqSpan * 100;
+                
+                const mark = document.createElement('div');
+                mark.className = 'tuner-mark';
+                mark.style.left = percentPosition + '%';
+                
+                const number = document.createElement('span');
+                number.textContent = freq;
+                mark.appendChild(number);
+                
+                tunerScale.appendChild(mark);
+            }
+        }
+
+        playPauseBtn.addEventListener('click', togglePlayPause);
+        nextBtn.addEventListener('click', nextStation);
+        prevBtn.addEventListener('click', prevStation);
+        sleepTimerBtn.addEventListener('click', toggleSleepTimer);
+
+        initTuner();
         loadStation(currentStationIndex); 
-        // NO llamamos a playAudio() para autoplay
         
+        playAudio(); // Autoplay
     </script>
 </body>
 </html>
