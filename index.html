@@ -16,7 +16,9 @@
             --bg-color: #111111;
             --text-color: #ffffff;
             --text-secondary: #aaaaaa;
-            --accent-red: #ff3b3b;
+            --accent-red: #ff3b3b; 
+            /* Agregamos el color por defecto para el visualizador */
+            --visualizer-color: var(--accent-red); 
         }
         body {
             font-family: 'Inter', sans-serif;
@@ -176,40 +178,21 @@
             transition: left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* --- Visualizador --- */
-        .visualizer {
+        /* --- NUEVO: CSS del Visualizador Canvas --- */
+        .visualizer-container {
+            width: 100%;
+            height: 80px; /* Ajustamos altura */
             display: flex;
             justify-content: center;
-            align-items: flex-end; 
-            height: 60px; 
-            width: 150px; 
-            margin: 10px auto 30px; 
-            gap: 4px;
+            align-items: center;
+            margin: 10px auto 20px; /* Ajustamos márgenes */
+            opacity: 0.8;
         }
-        .visualizer .bar {
-            width: 5px;
-            height: 100%; 
-            background-color: var(--text-secondary);
-            border-radius: 2px;
-            transform: scaleY(0.1); 
-            transform-origin: bottom; 
-            transition: transform 0.2s ease-out;
+        #visualizer {
+            width: 90%;
+            height: 100%;
         }
-        .visualizer.active .bar {
-            animation: bounce 1.2s ease-in-out alternate infinite;
-        }
-        @keyframes bounce {
-            0%   { transform: scaleY(0.1); }
-            100% { transform: scaleY(1.0); }
-        }
-        .visualizer.active .bar:nth-child(2n) { animation-delay: -0.2s; }
-        .visualizer.active .bar:nth-child(3n) { animation-delay: -0.4s; }
-        .visualizer.active .bar:nth-child(4n) { animation-delay: -0.6s; }
-        .visualizer.active .bar:nth-child(5n) { animation-delay: -0.8s; }
-        .visualizer.active .bar:nth-child(6n) { animation-delay: -1.0s; }
-        .visualizer.active .bar:nth-child(7n) { animation-delay: -0.5s; }
-        .visualizer.active .bar:nth-child(odd) { animation-duration: 1s; } 
-        /* --- Fin Visualizador --- */
+        /* --- FIN CSS NUEVO --- */
 
         .controls {
             display: flex;
@@ -253,8 +236,8 @@
     </style>
 </head>
 <body>
-
-    <audio id="audio-player" preload="none"></audio>
+    <audio id="audio-player" preload="none" crossorigin="anonymous"></audio> 
+    
     <div class="radio-container">
         
         <header class="header">
@@ -282,14 +265,10 @@
             <div class="tuner-scale" id="tuner-scale"></div>
         </div>
 
-        <div class="visualizer" id="visualizer">
-            <div class="bar"></div> <div class="bar"></div> <div class="bar"></div>
-            <div class="bar"></div> <div class="bar"></div> <div class="bar"></div>
-            <div class="bar"></div> <div class="bar"></div> <div class="bar"></div>
-            <div class="bar"></div> <div class="bar"></div> <div class="bar"></div>
-            <div class="bar"></div> <div class="bar"></div> <div class="bar"></div>
+        <div class="visualizer-container">
+            <canvas id="visualizer"></canvas>
         </div>
-        </div>
+        </div> 
 
     <footer class="controls">
         <button class="control-btn" id="prev-btn"><i class="fa-solid fa-backward-step"></i></button>
@@ -298,10 +277,9 @@
     </footer>
 
     <script>
-        // --- (El JavaScript no cambia, solo se agrega la variable 'visualizer') ---
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
+                navigator.serviceWorker.register('sw.js') // Asegúrate que el nombre sea sw.js
                     .then(reg => console.log('Service Worker registrado.', reg))
                     .catch(err => console.error('Error al registrar Service Worker:', err));
             });
@@ -315,6 +293,9 @@
             { name: "Aspen", freq: "102.3", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/ASPEN.mp3" },
             { name: "LN+", freq: "104.9", url: "https://stream.radio.co/s2ed3bec0a/listen" }
         ];
+        // --- NUEVO: Colores para el visualizador ---
+        const visualizerColors = ['#ff4136', '#36a2eb', '#4bc0c0', '#ffce56', '#9966ff', '#ff9f40'];
+
 
         const MIN_FREQ = 97.0;
         const MAX_FREQ = 106.0;
@@ -322,10 +303,14 @@
         let currentStationIndex = 0;
         let isPlaying = false;
         let sleepTimer = null;
+        // --- NUEVO: Variables para Web Audio API ---
+        let audioContext, analyser, source, dataArray, bufferLength;
+        let animationFrameId = null;
 
         const audioPlayer = document.getElementById('audio-player');
         const playPauseBtn = document.getElementById('play-pause-btn');
         const playPauseIcon = document.getElementById('play-pause-icon');
+        const pauseIcon = document.getElementById('pause-icon'); // Necesitamos el pause icon del otro HTML
         const nextBtn = document.getElementById('next-btn');
         const prevBtn = document.getElementById('prev-btn');
         const stationNameEl = document.getElementById('station-name');
@@ -336,14 +321,23 @@
         const sleepTimerBtn = document.getElementById('sleep-timer-btn');
         const tunerScale = document.getElementById('tuner-scale');
         const tunerIndicator = document.getElementById('tuner-indicator');
-        // --- NUEVO: Variable para el Visualizador ---
-        const visualizer = document.getElementById('visualizer');
+        // --- NUEVO: Variables del Canvas ---
+        const canvas = document.getElementById('visualizer');
+        const canvasCtx = canvas.getContext('2d');
 
         function loadStation(index) {
             const station = stations[index];
             stationNameEl.textContent = station.name;
             audioPlayer.src = station.url;
-            updateMediaSession(station);
+            
+            // --- NUEVO: Cambiar color del visualizador ---
+            const newColor = visualizerColors[index % visualizerColors.length];
+            document.documentElement.style.setProperty('--visualizer-color', newColor);
+            // También cambiamos el color 'accent' y 'needle' como en tu otro código
+            document.documentElement.style.setProperty('--accent-color', newColor); 
+            document.documentElement.style.setProperty('--needle-color', newColor);
+
+            updateMediaSession(); // Llamada movida aquí para asegurar metadata base
             
             const freq = parseFloat(station.freq);
             
@@ -358,39 +352,50 @@
                 tunerIndicator.style.left = '0%'; 
             }
             
+            // Si estaba sonando, que siga sonando y actualice visualizador
             if (isPlaying) {
-                playAudio(); // Esto activará el visualizador si ya estaba sonando
+                // Pequeño delay para asegurar que el nuevo source se cargue antes de conectar
+                setTimeout(playAudio, 100); 
             } else {
-                 visualizer.classList.remove('active'); // Asegurarse que esté apagado si no suena
+                 cancelAnimationFrame(animationFrameId); // Detener visualizador si no suena
+                 clearCanvas(); // Limpiar canvas si no suena
+            }
+        }
+        
+        // --- NUEVO: Función para limpiar el canvas ---
+        function clearCanvas() {
+            if(canvasCtx && canvas) {
+                canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
             }
         }
 
+        // --- MODIFICADO: playAudio para manejar AudioContext ---
         function playAudio() {
+            // Inicializar AudioContext si no existe (importante: debe ser por interacción del usuario)
+            if (!audioContext) {
+                 if (!setupAudioContext()) return; // Si falla, no continuamos
+            }
+            
             audioPlayer.play().then(() => {
                 isPlaying = true;
-                playPauseIcon.classList.remove('fa-play');
-                playPauseIcon.classList.add('fa-pause');
-                onAirText.textContent = 'ON AIR';
-                onAirText.classList.add('playing');
-                onAirDot.classList.add('pulsing');
-                navigator.mediaSession.playbackState = 'playing';
-                // --- ACTIVAR VISUALIZADOR ---
-                visualizer.classList.add('active'); 
-            }).catch(error => console.error("Error al reproducir (autoplay bloqueado por navegador?):", error));
+                updatePlayPauseUI(true);
+                // --- INICIAR VISUALIZADOR ---
+                draw(); 
+            }).catch(error => {
+                console.error("Error al reproducir:", error);
+                // Si falla (ej. autoplay bloqueado), aseguramos estado de pausa
+                pauseAudio(); 
+            });
         }
 
+        // --- MODIFICADO: pauseAudio para detener visualizador ---
         function pauseAudio() {
             audioPlayer.pause();
             isPlaying = false;
-            playPauseIcon.classList.remove('fa-pause');
-            playPauseIcon.classList.add('fa-play');
-            onAirText.textContent = 'OFF AIR';
-            onAirText.classList.remove('playing');
-            onAirDot.classList.remove('pulsing');
-            navigator.mediaSession.playbackState = 'paused';
-            nowPlayingTitle.textContent = "";
-            // --- DESACTIVAR VISUALIZADOR ---
-            visualizer.classList.remove('active'); 
+            updatePlayPauseUI(false);
+            // --- DETENER VISUALIZADOR ---
+            cancelAnimationFrame(animationFrameId);
+            clearCanvas(); // Limpiar al pausar
 
             if (sleepTimer) {
                 clearTimeout(sleepTimer);
@@ -399,13 +404,104 @@
             }
         }
 
+        // --- MODIFICADO: togglePlayPause para inicializar AudioContext ---
         function togglePlayPause() {
+            // Intenta inicializar el AudioContext en el primer click si no existe
+            if (!audioContext) {
+                if (!setupAudioContext()) {
+                    alert("Error al inicializar el audio. Intenta recargar la página.");
+                    return; 
+                }
+            }
+            
+            // Ahora sí, alterna play/pause
             if (isPlaying) {
                 pauseAudio();
             } else {
                 playAudio();
             }
         }
+
+
+        // --- NUEVO: setupAudioContext (combinado del otro archivo) ---
+        function setupAudioContext() {
+            try {
+                // Resume el contexto si ya existe pero está suspendido (política de autoplay)
+                if (audioContext && audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+                
+                // Si no existe, lo crea
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    analyser = audioContext.createAnalyser();
+                    // Importante: Crear el source DESPUÉS de que el usuario interactúe
+                    if (!source) { 
+                        source = audioContext.createMediaElementSource(audioPlayer);
+                        source.connect(analyser);
+                        analyser.connect(audioContext.destination);
+                    } else { // Si ya existe el source, reconectar por si acaso
+                        source.disconnect();
+                        source.connect(analyser);
+                        analyser.connect(audioContext.destination);
+                    }
+                    analyser.fftSize = 512; // Un tamaño más pequeño puede ser más reactivo
+                    bufferLength = analyser.frequencyBinCount;
+                    dataArray = new Uint8Array(bufferLength);
+                }
+                return true; // Éxito
+            } catch (e) {
+                console.error("Web Audio API no es soportada o falló la inicialización", e);
+                alert("Tu navegador no soporta la API de Audio necesaria para el visualizador.");
+                return false; // Fallo
+            }
+        }
+        
+        // --- NUEVO: setupCanvas ---
+        function setupCanvas() {
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            canvasCtx.scale(dpr, dpr);
+        }
+
+        // --- NUEVO: draw loop ---
+        function draw() {
+            animationFrameId = requestAnimationFrame(draw); // Llama a draw en el siguiente frame
+            
+            if (!analyser || !isPlaying) {
+                 clearCanvas();
+                 return; // No dibujar si no hay analyser o no está sonando
+            }
+            
+            // Usamos getByteFrequencyData para barras que suben con la "fuerza" de la música
+            analyser.getByteFrequencyData(dataArray); 
+
+            const width = canvas.clientWidth;
+            const height = canvas.clientHeight;
+            canvasCtx.clearRect(0, 0, width, height);
+
+            const numBars = 32; // Menos barras pueden verse mejor
+            const barWidth = width / numBars;
+            
+            // Usamos la variable CSS para el color
+            canvasCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--visualizer-color'); 
+            
+            for (let i = 0; i < numBars; i++) {
+                // dataArray[i] va de 0 a 255. Lo normalizamos (dividimos por 255)
+                // y lo multiplicamos por la altura para escalar.
+                const barHeight = (dataArray[i] / 255) * height;
+
+                const x = i * barWidth;
+                const barGap = barWidth * 0.2; // 20% de espacio
+                const barTrueWidth = barWidth - barGap;
+
+                // Dibujamos la barra desde abajo
+                canvasCtx.fillRect(x + (barGap / 2), height - barHeight, barTrueWidth, barHeight);
+            }
+        }
+
 
         function nextStation() {
             currentStationIndex = (currentStationIndex + 1) % stations.length;
@@ -426,74 +522,115 @@
                 sleepTimerBtn.classList.add('active');
                 const thirtyMinutes = 30 * 60 * 1000;
                 sleepTimer = setTimeout(() => {
-                    pauseAudio();
-                    sleepTimer = null;
-                    sleepTimerBtn.classList.remove('active');
+                    pauseAudio(); // Llama a pauseAudio que ya limpia el timer y el botón
                 }, thirtyMinutes);
             }
         }
         
-        function updateMediaSession(station) {
+        // --- MODIFICADO: updatePlayPauseUI ---
+        function updatePlayPauseUI(playing) {
+            isPlaying = playing;
+            // Aquí referenciamos los íconos de FontAwesome por su ID
+            const playIconFA = playPauseBtn.querySelector('#play-pause-icon.fa-play');
+            const pauseIconFA = playPauseBtn.querySelector('#play-pause-icon.fa-pause');
+            
+            if (playing) {
+                if (playIconFA) playIconFA.classList.replace('fa-play', 'fa-pause');
+            } else {
+                if (pauseIconFA) pauseIconFA.classList.replace('fa-pause', 'fa-play');
+            }
+            
+            onAirText.textContent = isPlaying ? 'ON AIR' : 'OFF AIR';
+            onAirDot.classList.toggle('pulsing', isPlaying); // Usamos pulsing en lugar de playing para el punto
             if ('mediaSession' in navigator) {
+                navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+            }
+        }
+        
+        
+        function updateMediaSession(trackTitle = null) {
+            if ('mediaSession' in navigator) {
+                const station = stations[currentStationIndex];
                 navigator.mediaSession.metadata = new MediaMetadata({
-                    title: station.name,
-                    artist: 'Radio en Vivo',
-                    album: station.freq, 
-                    artwork: [
+                    title: trackTitle || station.name, 
+                    artist: station.freq,
+                    album: 'Radio Dial PWA', // Nombre más descriptivo
+                    artwork: [ // Asegúrate que estos archivos existan
                         { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
                         { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
                     ]
                 });
-                try {
-                    navigator.mediaSession.addEventListener('metadata', () => {
-                        const metadata = navigator.mediaSession.metadata;
-                        if (metadata.title && metadata.title !== station.name) {
-                            nowPlayingTitle.textContent = metadata.title;
-                        } else if (metadata.artist && metadata.artist !== 'Radio enVivo') {
-                            nowPlayingTitle.textContent = metadata.artist;
-                        } else {
-                            nowPlayingTitle.textContent = "";
-                        }
-                    });
-                } catch (e) { console.warn("Listener de metadata falló", e); }
             }
         }
         
-        if ('mediaSession' in navigator) {
-            navigator.mediaSession.setActionHandler('play', playAudio);
-            navigator.mediaSession.setActionHandler('pause', pauseAudio);
-            navigator.mediaSession.setActionHandler('previoustrack', prevStation);
-            navigator.mediaSession.setActionHandler('nexttrack', nextStation);
-        }
-
-        function initTuner() {
-            tunerScale.innerHTML = '';
-            const freqSpan = MAX_FREQ - MIN_FREQ;
-
-            for (let freq = Math.floor(MIN_FREQ); freq <= Math.ceil(MAX_FREQ); freq++) {
-                const percentPosition = (freq - MIN_FREQ) / freqSpan * 100;
-                
-                const mark = document.createElement('div');
-                mark.className = 'tuner-mark';
-                mark.style.left = percentPosition + '%';
-                
-                const number = document.createElement('span');
-                number.textContent = freq;
-                mark.appendChild(number);
-                
-                tunerScale.appendChild(mark);
+        // --- MODIFICADO: Lógica para obtener metadatos (más robusta) ---
+         function getNowPlayingMetadata() {
+            // Limpiar título anterior
+            nowPlayingTitle.textContent = ''; 
+            
+            // Intenta obtener metadatos de Media Session API primero
+            if ('mediaSession' in navigator && navigator.mediaSession.metadata) {
+                 const metadata = navigator.mediaSession.metadata;
+                 // Comprobamos si el título es diferente al nombre de la estación
+                 if (metadata.title && metadata.title !== stations[currentStationIndex].name) {
+                     nowPlayingTitle.textContent = metadata.title;
+                     // Actualizamos también la notificación
+                     updateMediaSession(metadata.title); 
+                     return; // Salimos si ya obtuvimos el título
+                 }
+                  // A veces lo ponen en artist
+                 if (metadata.artist && metadata.artist !== 'Radio en Vivo' && metadata.artist !== stations[currentStationIndex].freq) {
+                     nowPlayingTitle.textContent = metadata.artist;
+                     updateMediaSession(metadata.artist); 
+                     return;
+                 }
             }
+             
+            // Como fallback, podemos intentar escuchar eventos 'metadata' del audio element
+            // (Esto es menos fiable y depende del stream)
+            audioPlayer.removeEventListener('loadedmetadata', handleAudioMetadata); // Quitar listener viejo si existe
+            audioPlayer.addEventListener('loadedmetadata', handleAudioMetadata);
         }
 
+        function handleAudioMetadata() {
+            // Lógica para intentar leer metadatos directamente del stream si MediaSession no funcionó
+            // Esta parte es compleja y no siempre funciona. Por ahora la dejamos simple.
+             console.log("Evento loadedmetadata disparado.");
+             // Aquí podrías intentar acceder a audioPlayer.textTracks si el stream los envía.
+        }
+
+        // --- Fin Modificación Metadatos ---
+
+
+        // --- Event Listeners ---
         playPauseBtn.addEventListener('click', togglePlayPause);
-        nextBtn.addEventListener('click', nextStation);
-        prevBtn.addEventListener('click', prevStation);
+        nextBtn.addEventListener('click', () => changeStation(1));
+        prevBtn.addEventListener('click', () => changeStation(-1));
         sleepTimerBtn.addEventListener('click', toggleSleepTimer);
+        // Eventos del audioPlayer para UI y metadatos
+        audioPlayer.addEventListener('play', () => {
+            updatePlayPauseUI(true);
+            // Intentar obtener metadatos cuando empieza a sonar
+            setTimeout(getNowPlayingMetadata, 1000); // Darle un segundo
+        });
+        audioPlayer.addEventListener('pause', () => updatePlayPauseUI(false));
+        audioPlayer.addEventListener('ended', () => updatePlayPauseUI(false));
+        window.addEventListener('resize', setupCanvas); // Reajustar canvas si cambia tamaño ventana
 
-        initTuner();
-        loadStation(currentStationIndex); 
+        // --- Media Session Handlers ---
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.setActionHandler('play', playAudio); // Llama a nuestra función playAudio
+            navigator.mediaSession.setActionHandler('pause', pauseAudio); // Llama a nuestra función pauseAudio
+            navigator.mediaSession.setActionHandler('previoustrack', () => changeStation(-1));
+            navigator.mediaSession.setActionHandler('nexttrack', () => changeStation(1));
+        }
+
+        // --- Inicialización ---
+        setupCanvas(); // Configurar tamaño inicial del canvas
+        initTuner(); // Dibujar el dial
+        loadStation(currentStationIndex); // Cargar la primera estación
+        // NO llamamos a playAudio() aquí para el autoplay, dejamos que el usuario inicie.
         
-        // playAudio(); // Comentamos el autoplay para evitar problemas iniciales
     </script>
 </body>
 </html>
