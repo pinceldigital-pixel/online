@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Radio Dial</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#111111">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    
+    <style>
+        /* (El CSS queda exactamente igual que antes) */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        :root {
+            --bg-color: #111111;
+            --text-color: #ffffff;
+            --text-secondary: #aaaaaa;
+            --accent-red: #ff3b3b;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            max-width: 400px;
+            height: 100vh;
+            margin: auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        .radio-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            flex-grow: 1;
+        }
+        .header {
+            margin-bottom: 40px; 
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+        .on-air-status {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        .on-air-dot {
+            width: 14px;
+            height: 14px;
+            background-color: var(--text-secondary);
+            border-radius: 50%;
+        }
+        .on-air-dot.pulsing {
+            background-color: var(--accent-red);
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+        .on-air-text {
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: var(--text-secondary);
+            letter-spacing: 1px;
+            transition: color 0.3s;
+        }
+        .on-air-text.playing { color: var(--accent-red); }
+        .timer-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+        }
+        .timer-btn svg {
+            width: 28px;
+            height: 28px;
