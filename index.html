@@ -11,7 +11,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     
     <style>
-        /* (Tu CSS de layout se mantiene intacto) */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         :root {
             --bg-color: #111111;
@@ -33,6 +32,7 @@
             justify-content: space-between;
             box-sizing: border-box;
             text-align: center;
+            overflow: hidden; 
         }
         .radio-container {
             display: flex;
@@ -40,6 +40,7 @@
             justify-content: flex-start;
             align-items: center;
             flex-grow: 1;
+            width: 100%; 
         }
         .header { 
             margin-bottom: 48px;
@@ -121,7 +122,7 @@
             font-weight: 500;
             color: var(--text-secondary);
             margin-top: 5px;
-            margin-bottom: 25px;
+            margin-bottom: 25px; 
             height: 20px;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -132,7 +133,7 @@
             position: relative;
             height: 70px;
             width: 100%;
-            margin-bottom: 40px;
+            margin-bottom: 20px; 
             overflow: hidden;
         }
         .tuner-scale {
@@ -174,7 +175,42 @@
             left: 10%; 
             transition: left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        
+
+        /* --- Visualizador --- */
+        .visualizer {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end; 
+            height: 60px; 
+            width: 150px; 
+            margin: 10px auto 30px; 
+            gap: 4px;
+        }
+        .visualizer .bar {
+            width: 5px;
+            height: 100%; 
+            background-color: var(--text-secondary);
+            border-radius: 2px;
+            transform: scaleY(0.1); 
+            transform-origin: bottom; 
+            transition: transform 0.2s ease-out;
+        }
+        .visualizer.active .bar {
+            animation: bounce 1.2s ease-in-out alternate infinite;
+        }
+        @keyframes bounce {
+            0%   { transform: scaleY(0.1); }
+            100% { transform: scaleY(1.0); }
+        }
+        .visualizer.active .bar:nth-child(2n) { animation-delay: -0.2s; }
+        .visualizer.active .bar:nth-child(3n) { animation-delay: -0.4s; }
+        .visualizer.active .bar:nth-child(4n) { animation-delay: -0.6s; }
+        .visualizer.active .bar:nth-child(5n) { animation-delay: -0.8s; }
+        .visualizer.active .bar:nth-child(6n) { animation-delay: -1.0s; }
+        .visualizer.active .bar:nth-child(7n) { animation-delay: -0.5s; }
+        .visualizer.active .bar:nth-child(odd) { animation-duration: 1s; } 
+        /* --- Fin Visualizador --- */
+
         .controls {
             display: flex;
             justify-content: space-between;
@@ -245,7 +281,15 @@
             <div class="tuner-indicator" id="tuner-indicator"></div>
             <div class="tuner-scale" id="tuner-scale"></div>
         </div>
-    </div>
+
+        <div class="visualizer" id="visualizer">
+            <div class="bar"></div> <div class="bar"></div> <div class="bar"></div>
+            <div class="bar"></div> <div class="bar"></div> <div class="bar"></div>
+            <div class="bar"></div> <div class="bar"></div> <div class="bar"></div>
+            <div class="bar"></div> <div class="bar"></div> <div class="bar"></div>
+            <div class="bar"></div> <div class="bar"></div> <div class="bar"></div>
+        </div>
+        </div>
 
     <footer class="controls">
         <button class="control-btn" id="prev-btn"><i class="fa-solid fa-backward-step"></i></button>
@@ -254,6 +298,7 @@
     </footer>
 
     <script>
+        // --- (El JavaScript no cambia, solo se agrega la variable 'visualizer') ---
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js')
@@ -262,7 +307,6 @@
             });
         }
     
-        // --- CAMBIO: Lista de radios actualizada ---
         const stations = [
             { name: "Awesome 80s", freq: "80s", url: "http://listen.181fm.com/181-awesome80s_128k.mp3" },
             { name: "Power 90s", freq: "90s", url: "https://live.powerhitz.com/90sarea" },
@@ -292,6 +336,8 @@
         const sleepTimerBtn = document.getElementById('sleep-timer-btn');
         const tunerScale = document.getElementById('tuner-scale');
         const tunerIndicator = document.getElementById('tuner-indicator');
+        // --- NUEVO: Variable para el Visualizador ---
+        const visualizer = document.getElementById('visualizer');
 
         function loadStation(index) {
             const station = stations[index];
@@ -313,7 +359,9 @@
             }
             
             if (isPlaying) {
-                playAudio();
+                playAudio(); // Esto activará el visualizador si ya estaba sonando
+            } else {
+                 visualizer.classList.remove('active'); // Asegurarse que esté apagado si no suena
             }
         }
 
@@ -326,6 +374,8 @@
                 onAirText.classList.add('playing');
                 onAirDot.classList.add('pulsing');
                 navigator.mediaSession.playbackState = 'playing';
+                // --- ACTIVAR VISUALIZADOR ---
+                visualizer.classList.add('active'); 
             }).catch(error => console.error("Error al reproducir (autoplay bloqueado por navegador?):", error));
         }
 
@@ -339,6 +389,8 @@
             onAirDot.classList.remove('pulsing');
             navigator.mediaSession.playbackState = 'paused';
             nowPlayingTitle.textContent = "";
+            // --- DESACTIVAR VISUALIZADOR ---
+            visualizer.classList.remove('active'); 
 
             if (sleepTimer) {
                 clearTimeout(sleepTimer);
@@ -441,7 +493,7 @@
         initTuner();
         loadStation(currentStationIndex); 
         
-        playAudio(); // Autoplay
+        // playAudio(); // Comentamos el autoplay para evitar problemas iniciales
     </script>
 </body>
 </html>
