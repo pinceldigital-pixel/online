@@ -531,6 +531,7 @@
       try{
         srcNode = audioCtx.createMediaElementSource(audio);
         srcNode.connect(analyser);
+        analyser.connect(audioCtx.destination); // fix: reactivar salida de audio
         // No conectar a destination para evitar duplicación de audio
         // El audio ya sale por el <audio> element
       }catch(e){
