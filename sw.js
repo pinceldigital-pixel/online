@@ -1,0 +1,38 @@
+// Nombre del caché
+const CACHE_NAME = 'radio-pwa-cache-v1';
+
+// Archivos para guardar en caché
+const urlsToCache = [
+  '.', // Esto cachea el index.html
+  'index.html',
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css'
+  // Los íconos se cachearán cuando se soliciten
+];
+
+// Evento 'install': se dispara cuando el SW se instala
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => {
+        console.log('Cache abierto');
+        return cache.addAll(urlsToCache);
+      })
+  );
+});
+
+// Evento 'fetch': se dispara cada vez que la app pide un recurso (CSS, JS, imágenes)
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => {
+        // Si está en caché, lo devuelve del caché
+        if (response) {
+          return response;
+        }
+        
+        // Si no, va a la red a buscarlo
+        return fetch(event.request);
+      }
+    )
+  );
+});
