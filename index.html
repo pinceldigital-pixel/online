@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Radio Dial</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#111111">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        :root {
+            --bg-color: #111111;
+            --text-color: #ffffff;
+            --text-secondary: #aaaaaa;
+            --accent-red: #ff3b3b;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            /* --- CAMBIO 1: AUMENTAMOS AÚN MÁS EL PADDING SUPERIOR DEL BODY --- */
+            padding: 12px 20px 20px; /* Antes era 40px, ahora 60px */
+            max-width: 400px;
+            height: 100vh;
+            margin: auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        .radio-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            flex-grow: 1;
+        }
+        
+        /* --- CAMBIO 2: Reducimos un poco más el margen inferior del header --- */
+        .header { margin-bottom: 48px; /* Antes era 20px, ahora 15px */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+        .on-air-status {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+}
+        .on-air-dot {
+    width: 16px;
+    height: 16px;
+    background-color: var(--text-secondary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: translateY(-2px);
+}
+        .on-air-dot.pulsing {
+            background-color: var(--accent-red);
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+        .on-air-text {
+    font-size: 1.5rem;
+    line-height: 1;
+    font-weight: 900;
+    color: var(--text-secondary);
+    letter-spacing: 1px;
+    transition: color 0.3s;
+}
+        .on-air-text.playing { color: var(--accent-red); }
+        .timer-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+        }
+        .timer-btn svg {
+            width: 28px;
+            height: 28px;
+            stroke: var(--text-secondary);
+            transition: all 0.2s ease;
+        }
+        .timer-btn.active svg {
+            stroke: var(--accent-red);
+            fill: var(--accent-red);
+        }
+        
+        .station-info { margin-bottom: 30px; }
+        #station-name {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-color);
+            margin: 0;
+            text-transform: uppercase;
+        }
+        #station-frequency {
+            font-size: 6rem;
+            font-weight: 900;
+            color: var(--text-secondary);
+            margin: 0;
+            line-height: 1.1;
+        }
+        #station-frequency .mhz {
+            font-size: 1.5rem;
+            font-weight: 400;
+            color: var(--text-secondary);
+            margin-left: 5px;
+        }
+        
+        #now-playing-title {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-top: 10px;
+            height: 20px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .tuner {
+            position: relative;
+            height: 70px;
+            width: 100%;
+            margin-bottom: 40px;
+            overflow: hidden;
+        }
+        .tuner-scale {
+            position: relative;
+            width: 100%;
+            height: 50px;
+            background-image: repeating-linear-gradient(to right, var(--text-secondary) 1px, transparent 1px, transparent 1.11%);
+            background-size: 100% 50%;
+            background-repeat: repeat-x;
+            background-position: center 100%;
+            opacity: 0.3;
+        }
+        .tuner-mark {
+            position: absolute;
+            bottom: 0;
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: center;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            transform: translateX(-50%);
+        }
+        .tuner-mark::before {
+            content: '';
+            width: 2px;
+            height: 25px;
+            background-color: var(--text-color);
+            margin-top: 4px;
+            opacity: 0.7;
+        }
+        .tuner-indicator {
+            position: absolute;
+            width: 3px;
+            height: 70px;
+            background-color: var(--accent-red);
+            box-shadow: 0 0 8px var(--accent-red);
+            border-radius: 2px;
+            z-index: 10;
+            left: 10%; 
+            transition: left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .controls {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            gap: 30px;
+            width: 100%;
+            padding: 20px 0;
+        }
+        .control-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        #play-pause-btn {
+            background: none; 
+            border: 2px solid var(--text-secondary); 
+            color: var(--text-secondary); 
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            font-size: 2rem;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            transition: color 0.1s, border-color 0.1s; 
+        }
+        #play-pause-btn:active {
+            background-color: transparent; 
+            color: var(--accent-red); 
+            border-color: var(--accent-red); 
+        }
+        
+        #audio-player { display: none; }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 59, 59, 0.7); }
+            70% { box-shadow: 0 0 0 12px rgba(255, 59, 59, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 59, 59, 0); }
+        }
+    </style>
+</head>
+<body>
+
+    <audio id="audio-player" preload="none"></audio>
+    <div class="radio-container">
+        
+        <header class="header">
+            <div class="on-air-status">
+                <span class="on-air-dot" id="on-air-dot"></span>
+                <span class="on-air-text" id="on-air-text">OFF AIR</span>
+            </div>
+            
+            <button class="timer-btn" id="sleep-timer-btn" aria-label="Temporizador de apagado">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+                </svg>
+            </button>
+        </header>
+
+        <main class="station-info">
+            <h2 id="station-name">Club 80s</h2>
+            <h1 id="station-frequency">80s</h1> <p id="now-playing-title"></p>
+        </main>
+
+        <div class="tuner">
+            <div class="tuner-indicator" id="tuner-indicator"></div>
+            <div class="tuner-scale" id="tuner-scale"></div>
+        </div>
+    </div>
+
+    <footer class="controls">
+        <button class="control-btn" id="prev-btn"><i class="fa-solid fa-backward-step"></i></button>
+        <button class="control-btn" id="play-pause-btn"><i class="fa-solid fa-play" id="play-pause-icon"></i></button>
+        <button class="control-btn" id="next-btn"><i class="fa-solid fa-forward-step"></i></button>
+    </footer>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('Service Worker registrado.', reg))
+                    .catch(err => console.error('Error al registrar Service Worker:', err));
+            });
+        }
+    
+        const stations = [
+            { name: "Club 80s", freq: "80s", url: "https://stream.radioclub80.cl:8002/clasicos80.mp3" },
+            { name: "Power 90s", freq: "90s", url: "https://live.powerhitz.com/90sarea" },
+            { name: "2000s Hits", freq: "00s", url: "https://streaming.live365.com/a48930" },
+            { name: "Blue", freq: "100.7", url: "https://27693.live.streamtheworld.com/BLUE_FM_100_7AAC.aac" },
+            { name: "Aspen", freq: "102.3", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/ASPEN.mp3" },
+            { name: "LN+", freq: "104.9", url: "https://stream.radio.co/s2ed3bec0a/listen" }
+        ];
+
+        const MIN_FREQ = 97.0;
+        const MAX_FREQ = 106.0;
+
+        let currentStationIndex = 0;
+        let isPlaying = false;
+        let sleepTimer = null;
+
+        const audioPlayer = document.getElementById('audio-player');
+        const playPauseBtn = document.getElementById('play-pause-btn');
+        const playPauseIcon = document.getElementById('play-pause-icon');
+        const nextBtn = document.getElementById('next-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const stationNameEl = document.getElementById('station-name');
+        const stationFrequencyEl = document.getElementById('station-frequency');
+        const onAirDot = document.getElementById('on-air-dot');
+        const onAirText = document.getElementById('on-air-text');
+        const nowPlayingTitle = document.getElementById('now-playing-title');
+        const sleepTimerBtn = document.getElementById('sleep-timer-btn');
+        const tunerScale = document.getElementById('tuner-scale');
+        const tunerIndicator = document.getElementById('tuner-indicator');
+
+        function loadStation(index) {
+            const station = stations[index];
+            stationNameEl.textContent = station.name;
+            audioPlayer.src = station.url;
+            updateMediaSession(station);
+            
+            const freq = parseFloat(station.freq);
+            
+            if (!isNaN(freq)) {
+                stationFrequencyEl.innerHTML = `${station.freq}<span class="mhz">MHz</span>`;
+                const freqSpan = MAX_FREQ - MIN_FREQ;
+                const percentPosition = (freq - MIN_FREQ) / freqSpan * 100;
+                const clampedPosition = Math.max(0, Math.min(100, percentPosition)); 
+                tunerIndicator.style.left = clampedPosition + '%';
+            } else {
+                stationFrequencyEl.innerHTML = station.freq;
+                tunerIndicator.style.left = '0%'; // Manda la aguja al inicio para radios temáticas
+            }
+            
+            if (isPlaying) {
+                playAudio();
+            }
+        }
+
+        function playAudio() {
+            audioPlayer.play().then(() => {
+                isPlaying = true;
+                playPauseIcon.classList.remove('fa-play');
+                playPauseIcon.classList.add('fa-pause');
+                onAirText.textContent = 'ON AIR';
+                onAirText.classList.add('playing');
+                onAirDot.classList.add('pulsing');
+                navigator.mediaSession.playbackState = 'playing';
+            }).catch(error => console.error("Error al reproducir (autoplay bloqueado por navegador?):", error));
+        }
+
+        function pauseAudio() {
+            audioPlayer.pause();
+            isPlaying = false;
+            playPauseIcon.classList.remove('fa-pause');
+            playPauseIcon.classList.add('fa-play');
+            onAirText.textContent = 'OFF AIR';
+            onAirText.classList.remove('playing');
+            onAirDot.classList.remove('pulsing');
+            navigator.mediaSession.playbackState = 'paused';
+            nowPlayingTitle.textContent = "";
+
+            if (sleepTimer) {
+                clearTimeout(sleepTimer);
+                sleepTimer = null;
+                sleepTimerBtn.classList.remove('active');
+            }
+        }
+
+        function togglePlayPause() {
+            if (isPlaying) {
+                pauseAudio();
+            } else {
+                playAudio();
+            }
+        }
+
+        function nextStation() {
+            currentStationIndex = (currentStationIndex + 1) % stations.length;
+            loadStation(currentStationIndex);
+        }
+
+        function prevStation() {
+            currentStationIndex = (currentStationIndex - 1 + stations.length) % stations.length;
+            loadStation(currentStationIndex);
+        }
+        
+        function toggleSleepTimer() {
+            if (sleepTimer) {
+                clearTimeout(sleepTimer);
+                sleepTimer = null;
+                sleepTimerBtn.classList.remove('active');
+            } else {
+                sleepTimerBtn.classList.add('active');
+                const thirtyMinutes = 30 * 60 * 1000;
+                sleepTimer = setTimeout(() => {
+                    pauseAudio();
+                    sleepTimer = null;
+                    sleepTimerBtn.classList.remove('active');
+                }, thirtyMinutes);
+            }
+        }
+        
+        function updateMediaSession(station) {
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: station.name,
+                    artist: 'Radio en Vivo',
+                    album: station.freq, 
+                    artwork: [
+                        { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
+                        { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
+                    ]
+                });
+                try {
+                    navigator.mediaSession.addEventListener('metadata', () => {
+                        const metadata = navigator.mediaSession.metadata;
+                        if (metadata.title && metadata.title !== station.name) {
+                            nowPlayingTitle.textContent = metadata.title;
+                        } else if (metadata.artist && metadata.artist !== 'Radio enVivo') {
+                            nowPlayingTitle.textContent = metadata.artist;
+                        } else {
+                            nowPlayingTitle.textContent = "";
+                        }
+                    });
+                } catch (e) { console.warn("Listener de metadata falló", e); }
+            }
+        }
+        
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.setActionHandler('play', playAudio);
+            navigator.mediaSession.setActionHandler('pause', pauseAudio);
+            navigator.mediaSession.setActionHandler('previoustrack', prevStation);
+            navigator.mediaSession.setActionHandler('nexttrack', nextStation);
+        }
+
+        function initTuner() {
+            tunerScale.innerHTML = '';
+            const freqSpan = MAX_FREQ - MIN_FREQ;
+
+            for (let freq = Math.floor(MIN_FREQ); freq <= Math.ceil(MAX_FREQ); freq++) {
+                const percentPosition = (freq - MIN_FREQ) / freqSpan * 100;
+                
+                const mark = document.createElement('div');
+                mark.className = 'tuner-mark';
+                mark.style.left = percentPosition + '%';
+                
+                const number = document.createElement('span');
+                number.textContent = freq;
+                mark.appendChild(number);
+                
+                tunerScale.appendChild(mark);
+            }
+        }
+
+        playPauseBtn.addEventListener('click', togglePlayPause);
+        nextBtn.addEventListener('click', nextStation);
+        prevBtn.addEventListener('click', prevStation);
+        sleepTimerBtn.addEventListener('click', toggleSleepTimer);
+
+        initTuner();
+        loadStation(currentStationIndex); 
+        
+        playAudio(); // Autoplay
+    </script>
+</body>
+</html>
