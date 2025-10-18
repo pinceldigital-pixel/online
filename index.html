@@ -1,16 +1,14 @@
 <!DOCTYPE html>
+
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Radio Dial</title>
-    
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#111111">
-    
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    
-    <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Radio Dial</title>
+<link href="manifest.json" rel="manifest"/>
+<meta content="#111111" name="theme-color"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet"/>
+<style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         :root {
             --bg-color: #111111;
@@ -216,46 +214,102 @@
             70% { box-shadow: 0 0 0 12px rgba(255, 59, 59, 0); }
             100% { box-shadow: 0 0 0 0 rgba(255, 59, 59, 0); }
         }
-    </style>
+    
+/* --- Visualizer (auto-inserted) --- */
+.visualizer{
+  width:100%;
+  height:70px;
+  min-height:70px;
+  margin: 12px 0 20px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  overflow: hidden;
+}
+#viz{
+  width:100%;
+  height:100%;
+  display:block;
+}
+/* --- /Visualizer --- */
+
+/* --- Visualizer (relocated) --- */
+.visualizer{
+  width:100%;
+  height:70px;
+  min-height:70px;
+  margin: 8px 0 14px;
+  background: #000;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  overflow: hidden;
+}
+#viz{ width:100%; height:100%; display:block; }
+/* --- /Visualizer --- */
+
+/* --- Visualizer (ajustada) --- */
+.visualizer{
+  width:100%;
+  height:70px;
+  min-height:70px;
+  margin: -2px 0 12px; /* subí un poco las barras */
+  background: #111111;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  overflow: hidden;
+}
+#viz{ width:100%; height:100%; display:block; }
+/* --- /Visualizer --- */
+
+/* --- Visualizer (full #111111) --- */
+.visualizer{
+  width:100%;
+  height:70px;
+  min-height:70px;
+  margin: -2px 0 12px;
+  background: #111111;
+  border: none;
+  border-radius: 0;
+  overflow: hidden;
+}
+#viz{
+  width:100%;
+  height:100%;
+  display:block;
+}
+/* --- /Visualizer --- */
+</style>
 </head>
 <body>
-
-    <audio id="audio-player" preload="none"></audio>
-    <div class="radio-container">
-        
-        <header class="header">
-            <div class="on-air-status">
-                <span class="on-air-dot" id="on-air-dot"></span>
-                <span class="on-air-text" id="on-air-text">OFF AIR</span>
-            </div>
-            
-            <button class="timer-btn" id="sleep-timer-btn" aria-label="Temporizador de apagado">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
-                </svg>
-            </button>
-        </header>
-
-        <main class="station-info">
-            <h2 id="station-name">Club 80s</h2>
-            <h1 id="station-frequency">80s</h1> 
-        </main>
-        
-        <p id="now-playing-title"></p>
-
-        <div class="tuner">
-            <div class="tuner-indicator" id="tuner-indicator"></div>
-            <div class="tuner-scale" id="tuner-scale"></div>
-        </div>
-    </div>
-
-    <footer class="controls">
-        <button class="control-btn" id="prev-btn"><i class="fa-solid fa-backward-step"></i></button>
-        <button class="control-btn" id="play-pause-btn"><i class="fa-solid fa-play" id="play-pause-icon"></i></button>
-        <button class="control-btn" id="next-btn"><i class="fa-solid fa-forward-step"></i></button>
-    </footer>
-
-    <script>
+<audio id="audio-player" preload="none"></audio>
+<div class="radio-container">
+<header class="header">
+<div class="on-air-status">
+<span class="on-air-dot" id="on-air-dot"></span>
+<span class="on-air-text" id="on-air-text">OFF AIR</span>
+</div>
+<button aria-label="Temporizador de apagado" class="timer-btn" id="sleep-timer-btn">
+<svg fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+</svg>
+</button>
+</header>
+<main class="station-info">
+<h2 id="station-name">Club 80s</h2>
+<h1 id="station-frequency">80s</h1>
+</main>
+<p id="now-playing-title"></p>
+<div class="tuner">
+<div class="tuner-indicator" id="tuner-indicator"></div>
+<div class="tuner-scale" id="tuner-scale"></div>
+</div>
+</div>
+<div class="visualizer"><canvas height="70" id="viz" width="360"></canvas></div><footer class="controls">
+<button class="control-btn" id="prev-btn"><i class="fa-solid fa-backward-step"></i></button>
+<button class="control-btn" id="play-pause-btn"><i class="fa-solid fa-play" id="play-pause-icon"></i></button>
+<button class="control-btn" id="next-btn"><i class="fa-solid fa-forward-step"></i></button>
+</footer>
+<script>
         // (El JavaScript no necesita ningún cambio)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -445,5 +499,93 @@
         
         playAudio(); // Autoplay
     </script>
-</body>
+<script>
+/* === Audio Visualizer (auto-inserted) === */
+(function(){
+  const audio = document.getElementById('audio-player');
+  const canvas = document.getElementById('viz');
+  if(!audio || !canvas) return; // no romper nada si no está
+  try { audio.crossOrigin = "anonymous"; } catch(e){}
+  const ctx = canvas.getContext('2d');
+  let audioCtx = null, srcNode = null, analyser = null, raf = 0, drawViz = null, ready = false;
+  const dpr = window.devicePixelRatio || 1;
+
+  function resize(){
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+    canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  function init(){
+    if(ready) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return;
+    if(!audioCtx) audioCtx = new AC();
+    if(!analyser){
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+    }
+    if(!srcNode){
+      try{
+        srcNode = audioCtx.createMediaElementSource(audio);
+        srcNode.connect(analyser);
+        // No conectar a destination para evitar duplicación de audio
+        // El audio ya sale por el <audio> element
+      }catch(e){
+        // Si ya estaba creado en otro script, ignorar
+      }
+    }
+    ready = true;
+
+    const bufferLength = analyser.frequencyBinCount;
+    const data = new Uint8Array(bufferLength);
+
+    drawViz = function(){
+      raf = requestAnimationFrame(drawViz);
+      analyser.getByteFrequencyData(data);
+      const W = canvas.width, H = canvas.height;
+      ctx.clearRect(0,0,W,H);
+      ctx.globalAlpha = 0.8;
+      ctx.fillStyle = '#111111';
+      ctx.fillRect(0,0,W,H);
+
+      const bars = 40;
+      const step = Math.max(1, Math.floor(data.length / bars));
+      const barW = W / bars;
+      for(let i=0;i<bars;i++){
+        const v = data[i*step] / 255;
+        const h = Math.max(2, v * (H*0.9));
+        const x = i * barW + 2;
+        const y = H - h;
+        ctx.globalAlpha = 0.85;
+        ctx.fillStyle = '#ff3b3b';
+        ctx.fillRect(x, y, barW - 4, h);
+        ctx.globalAlpha = 0.25;
+        ctx.fillRect(x, y - 4, barW - 4, 4);
+      }
+      ctx.globalAlpha = 1;
+    };
+  }
+
+  function start(){
+    init();
+    if(audioCtx && audioCtx.state === 'suspended'){
+      audioCtx.resume();
+    }
+    if(ready && !raf && typeof drawViz === 'function'){
+      drawViz();
+    }
+  }
+  function stop(){
+    if(raf){ cancelAnimationFrame(raf); raf = 0; }
+  }
+
+  audio.addEventListener('play', start);
+  audio.addEventListener('pause', stop);
+  audio.addEventListener('ended', stop);
+})();
+/* === /Audio Visualizer === */
+</script></body>
 </html>
